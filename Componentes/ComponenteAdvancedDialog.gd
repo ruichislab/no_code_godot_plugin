@@ -29,11 +29,13 @@ func _ready():
 	body_entered.connect(_on_body_entered)
 	
 	# Conectarse al DialogueManager para saber cuándo mostrar cosas
-	if DialogueManager:
-		DialogueManager.dialogo_iniciado.connect(_on_dialogo_iniciado)
-		DialogueManager.linea_mostrada.connect(_on_linea_mostrada)
-		DialogueManager.opciones_mostradas.connect(_on_opciones_mostradas)
-		DialogueManager.dialogo_terminado.connect(_on_dialogo_terminado)
+	# Conectarse al DialogueManager para saber cuándo mostrar cosas
+	var dm = _get_dialogue_manager()
+	if dm:
+		dm.dialogo_iniciado.connect(_on_dialogo_iniciado)
+		dm.linea_mostrada.connect(_on_linea_mostrada)
+		dm.opciones_mostradas.connect(_on_opciones_mostradas)
+		dm.dialogo_terminado.connect(_on_dialogo_terminado)
 
 func _on_body_entered(body):
 	if body.is_in_group("jugador") or body.name == "Jugador":
@@ -42,8 +44,9 @@ func _on_body_entered(body):
 func iniciar():
 	if not dialogo_inicial: return
 	
-	if DialogueManager:
-		DialogueManager.iniciar_dialogo(dialogo_inicial)
+	var dm = _get_dialogue_manager()
+	if dm:
+		dm.iniciar_dialogo(dialogo_inicial)
 	else:
 		push_error("DialogueManager no está cargado en Autoloads.")
 
@@ -115,8 +118,10 @@ func _on_linea_mostrada(texto, nombre):
 	tween.tween_property(lbl_texto, "visible_ratio", 1.0, len(texto) * 0.03)
 	
 	# Actualizar retrato si existe en el recurso actual
-	if DialogueManager.dialogo_actual and DialogueManager.dialogo_actual.retrato:
-		tex_retrato.texture = DialogueManager.dialogo_actual.retrato
+	# Actualizar retrato si existe en el recurso actual
+	var dm = _get_dialogue_manager()
+	if dm and dm.dialogo_actual and dm.dialogo_actual.retrato:
+		tex_retrato.texture = dm.dialogo_actual.retrato
 		tex_retrato.visible = true
 	else:
 		tex_retrato.visible = false
@@ -133,5 +138,14 @@ func _on_dialogo_terminado():
 func _input(event):
 	# Avanzar diálogo con clic o espacio
 	if ui_instancia and event.is_action_pressed("ui_accept"):
-		if DialogueManager:
-			DialogueManager.mostrar_siguiente_linea()
+		var dm = _get_dialogue_manager()
+		if dm:
+			dm.mostrar_siguiente_linea()
+
+func _get_dialogue_manager() -> Node:
+	if Engine.has_singleton("DialogueManager"): # C++ singleton? No.
+		return Engine.get_singleton("DialogueManager")
+	# Autoloads are children of root
+	if is_inside_tree():
+		return get_tree().root.get_node_or_null("DialogueManager")
+	return null

@@ -22,8 +22,9 @@ const _tool_context = "RuichisLab/Nodos"
 @export var sonido_game_over: String = "game_over"
 
 func _ready():
-	if GameManager:
-		GameManager.game_over.connect(_on_game_over)
+	var gm = _get_game_manager()
+	if gm:
+		gm.game_over.connect(_on_game_over)
 		
 	if pantalla_game_over:
 		pantalla_game_over.visible = false
@@ -34,8 +35,10 @@ func _on_game_over():
 	if tiempo_espera > 0:
 		await get_tree().create_timer(tiempo_espera).timeout
 		
-	if SoundManager:
-		SoundManager.play_sfx(sonido_game_over)
+	var sm = _get_sound_manager()
+	if sm:
+		# sm.play_sfx(sonido_game_over)
+		pass
 		
 	if pantalla_game_over:
 		pantalla_game_over.visible = true
@@ -54,3 +57,13 @@ func reiniciar_nivel():
 func salir_al_menu(ruta_menu: String):
 	get_tree().paused = false
 	get_tree().change_scene_to_file(ruta_menu)
+
+func _get_game_manager() -> Node:
+	if Engine.has_singleton("GameManager"): return Engine.get_singleton("GameManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("GameManager")
+	return null
+
+func _get_sound_manager() -> Node:
+	if Engine.has_singleton("SoundManager"): return Engine.get_singleton("SoundManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("SoundManager")
+	return null

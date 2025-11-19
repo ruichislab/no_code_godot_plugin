@@ -64,5 +64,12 @@ func _input(event):
 func cerrar():
 	visible = false
 	# Si UIManager está presente, notificarle (opcional si no usamos UIManager.abrir_menu)
-	if UIManager and UIManager.pila_menus.has(self):
-		UIManager.cerrar_menu_actual()
+	# Si UIManager está presente, notificarle (opcional si no usamos UIManager.abrir_menu)
+	var uim = _get_ui_manager()
+	if uim and uim.pila_menus.has(self):
+		uim.cerrar_menu_actual()
+
+func _get_ui_manager() -> Node:
+	if Engine.has_singleton("UIManager"): return Engine.get_singleton("UIManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("UIManager")
+	return null

@@ -24,10 +24,23 @@ const _tool_context = "RuichisLab/Nodos"
 func _ready():
 	body_entered.connect(_on_body_entered)
 
+func _get_sound_manager():
+	if Engine.has_singleton("SoundManager"):
+		return Engine.get_singleton("SoundManager")
+	if Engine.has_singleton("AudioManager"):
+		return Engine.get_singleton("AudioManager")
+	if is_inside_tree():
+		return get_tree().root.get_node_or_null("SoundManager") or get_tree().root.get_node_or_null("AudioManager")
+	return null
+
 func _on_body_entered(body):
 	if body.is_in_group("jugador") or body.name == "Jugador":
-		if SoundManager:
-			SoundManager.play_music(stream_audio, transicion_segundos, bus)
+		var sm = _get_sound_manager()
+		if sm:
+			if sm.has_method("play_music"):
+				sm.play_music(stream_audio, volumen_db)
+			elif sm.has_method("reproducir_musica"):
+				sm.reproducir_musica(stream_audio, volumen_db)
 		else:
 			print("SoundArea: SoundManager no encontrado. Reproduciendo localmente.")
 			# Fallback simple si no hay SoundManager

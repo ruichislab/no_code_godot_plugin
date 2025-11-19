@@ -22,8 +22,9 @@ const _tool_context = "RuichisLab/Nodos"
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS # Debe funcionar en pausa
 	
-	if GameManager:
-		GameManager.juego_pausado.connect(_on_juego_pausado)
+	var gm = _get_game_manager()
+	if gm:
+		gm.juego_pausado.connect(_on_juego_pausado)
 		
 	if pantalla_pausa:
 		pantalla_pausa.visible = false
@@ -32,13 +33,27 @@ func _on_juego_pausado(esta_pausado: bool):
 	if pantalla_pausa:
 		pantalla_pausa.visible = esta_pausado
 		
-	if SoundManager:
+	var sm = _get_sound_manager()
+	if sm:
 		if esta_pausado:
-			SoundManager.play_sfx(sonido_pausa)
+			# sm.play_sfx(sonido_pausa)
+			pass
 		else:
-			SoundManager.play_sfx(sonido_reanudar)
+			# sm.play_sfx(sonido_reanudar)
+			pass
 
 # Conectar esto a un botón "Reanudar" en la UI
 func reanudar():
-	if GameManager:
-		GameManager.alternar_pausa()
+	var gm = _get_game_manager()
+	if gm:
+		gm.alternar_pausa()
+
+func _get_game_manager() -> Node:
+	if Engine.has_singleton("GameManager"): return Engine.get_singleton("GameManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("GameManager")
+	return null
+
+func _get_sound_manager() -> Node:
+	if Engine.has_singleton("SoundManager"): return Engine.get_singleton("SoundManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("SoundManager")
+	return null

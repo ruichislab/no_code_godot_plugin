@@ -25,8 +25,10 @@ const _tool_context = "RuichisLab/Nodos"
 
 func _ready():
 	# Conectar señal de actualización del inventario
-	if InventarioGlobal:
-		InventarioGlobal.inventario_actualizado.connect(actualizar_grid)
+	# Conectar señal de actualización del inventario
+	var inv = _get_inventory_manager()
+	if inv:
+		inv.inventario_actualizado.connect(actualizar_grid)
 		actualizar_grid()
 
 func actualizar_grid():
@@ -34,9 +36,21 @@ func actualizar_grid():
 	for child in get_children():
 		child.queue_free()
 		
-	if not InventarioGlobal: return
+	var inv = _get_inventory_manager()
+	if not inv: return
 	
-	var items = InventarioGlobal.obtener_todos_los_items()
+	# Nota: InventarioGlobal no tiene 'obtener_todos_los_items' en la versión actual,
+	# usa 'inventario_principal'. Adaptando...
+	var items = []
+	if "inventario_principal" in inv:
+		for slot in inv.inventario_principal:
+			if not slot.is_empty():
+				# Reconstruir estructura esperada o usar slot directo
+				# Necesitamos el recurso estático para datos visuales
+				var datos_base = inv.obtener_datos_estaticos(slot.id_unico)
+				items.append({"recurso": datos_base, "cantidad": slot.cantidad})
+	
+	# var items = InventarioGlobal.obtener_todos_los_items()
 	
 	for item_data in items:
 		var recurso = item_data["recurso"]
@@ -63,3 +77,8 @@ func actualizar_grid():
 				if recurso.icono:
 					slot.icon = recurso.icono
 					slot.expand_icon = true
+
+func _get_inventory_manager() -> Node:
+	if Engine.has_singleton("InventarioGlobal"): return Engine.get_singleton("InventarioGlobal")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("InventarioGlobal")
+	return null

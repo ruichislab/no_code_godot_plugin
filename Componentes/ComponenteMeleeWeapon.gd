@@ -33,6 +33,15 @@ const _tool_context = "RuichisLab/Nodos"
 var puede_atacar: bool = true
 var sprite: AnimatedSprite2D
 
+func _get_sound_manager():
+	if Engine.has_singleton("SoundManager"):
+		return Engine.get_singleton("SoundManager")
+	if Engine.has_singleton("AudioManager"):
+		return Engine.get_singleton("AudioManager")
+	if is_inside_tree():
+		return get_tree().root.get_node_or_null("SoundManager") or get_tree().root.get_node_or_null("AudioManager")
+	return null
+
 func _ready():
 	# Buscar sprite en el padre (Jugador)
 	var padre = get_parent()
@@ -41,7 +50,7 @@ func _ready():
 			sprite = child
 
 			break
-			
+		
 	if hitbox:
 		hitbox.monitorable = false # Desactivado por defecto
 		hitbox.monitoring = false
@@ -55,8 +64,12 @@ func atacar():
 	
 	print("Ataque iniciado!")
 	
-	if SoundManager:
-		SoundManager.play_sfx(sonido_ataque)
+	var sm = _get_sound_manager()
+	if sm:
+		if sm.has_method("play_sfx"):
+			sm.play_sfx(sonido_ataque)
+		elif sm.has_method("reproducir_sonido") and typeof(sonido_ataque) == TYPE_OBJECT:
+			sm.reproducir_sonido(sonido_ataque)
 		
 	if sprite and sprite.sprite_frames.has_animation(animacion_ataque):
 		sprite.play(animacion_ataque)

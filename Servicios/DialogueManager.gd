@@ -28,8 +28,8 @@ func mostrar_siguiente_linea():
 		emit_signal("linea_mostrada", linea, dialogo_actual.nombre_personaje)
 		
 		# Reproducir sonido si existe
-		if dialogo_actual.sonido_voz and SoundManager:
-			SoundManager.play_sfx_stream(dialogo_actual.sonido_voz)
+		if dialogo_actual.sonido_voz and AudioManager:
+			AudioManager.reproducir_sonido(dialogo_actual.sonido_voz)
 			
 		indice_linea += 1
 	else:

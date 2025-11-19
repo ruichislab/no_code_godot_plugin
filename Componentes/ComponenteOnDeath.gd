@@ -22,6 +22,15 @@ const _tool_context = "RuichisLab/Nodos"
 
 var hurtbox: Node
 
+func _get_sound_manager():
+	if Engine.has_singleton("SoundManager"):
+		return Engine.get_singleton("SoundManager")
+	if Engine.has_singleton("AudioManager"):
+		return Engine.get_singleton("AudioManager")
+	if is_inside_tree():
+		return get_tree().root.get_node_or_null("SoundManager") or get_tree().root.get_node_or_null("AudioManager")
+	return null
+
 func _ready():
 	var padre = get_parent()
 	
@@ -42,8 +51,13 @@ func _on_muerte():
 		instancia.global_position = get_parent().global_position
 		get_tree().current_scene.add_child(instancia)
 		
-	if sonido_muerte != "" and SoundManager:
-		SoundManager.play_sfx(sonido_muerte)
+	if sonido_muerte != "":
+		var sm = _get_sound_manager()
+		if sm:
+			if sm.has_method("play_sfx"):
+				sm.play_sfx(sonido_muerte)
+			elif sm.has_method("reproducir_sonido") and typeof(sonido_muerte) == TYPE_OBJECT:
+				sm.reproducir_sonido(sonido_muerte)
 		
 	if sacudida_camara > 0 and JuiceManager:
 		JuiceManager.shake_screen(sacudida_camara)

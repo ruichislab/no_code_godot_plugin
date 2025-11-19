@@ -10,7 +10,6 @@
 ## - Precision platformers
 ##
 ## **Requisito:** El padre debe ser CharacterBody2D.
-@icon("res://icon.svg")
 class_name ComponentePlatformerController
 extends Node
 const _tool_context = "RuichisLab/Nodos"

@@ -11,7 +11,6 @@
 ## - Efectos de velocidad
 ##
 ## **Requisito:** Debe ser hijo de un Line2D.
-@icon("res://icon.svg")
 class_name ComponenteTrail
 extends Line2D
 const _tool_context = "RuichisLab/Nodos"

@@ -1,4 +1,3 @@
-@icon("res://icon.svg")
 class_name ComponenteCardSlot
 extends PanelContainer
 const _tool_context = "RuichisLab/Nodos"

@@ -12,7 +12,6 @@
 ## - Puertas que requieren llave
 ##
 ## **Requisito:** Debe ser hijo de un Area2D. El jugador debe presionar la tecla de acción.
-@icon("res://icon.svg")
 class_name ComponenteInteraccion
 extends Area2D
 const _tool_context = "RuichisLab/Nodos"

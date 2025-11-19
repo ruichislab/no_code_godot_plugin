@@ -31,10 +31,16 @@ func _on_body_entered(body):
 		completar_objetivo()
 
 func completar_objetivo():
-	if GestorMisiones:
-		GestorMisiones.avanzar_progreso(id_objetivo, cantidad)
+	var gm = _get_quest_manager()
+	if gm:
+		gm.avanzar_progreso(id_objetivo, cantidad)
 		activado = true
 		
 		if solo_una_vez:
 			# Opcional: Desactivar colisión o borrar
 			queue_free()
+
+func _get_quest_manager() -> Node:
+	if Engine.has_singleton("GestorMisiones"): return Engine.get_singleton("GestorMisiones")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("GestorMisiones")
+	return null

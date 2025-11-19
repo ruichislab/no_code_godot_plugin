@@ -88,14 +88,16 @@ func _registrar_comandos_base():
 	)
 	
 	registrar_comando("heal", func(args):
-		if GameManager.jugador and GameManager.jugador.has_node("Estadisticas"):
-			GameManager.jugador.get_node("Estadisticas").curar(1000)
+		var gm = _get_game_manager()
+		if gm and gm.jugador and gm.jugador.has_node("Estadisticas"):
+			gm.jugador.get_node("Estadisticas").curar(1000)
 			log_msg("Jugador curado.", Color.GREEN)
 	)
 	
 	registrar_comando("god", func(args):
-		if GameManager.jugador and GameManager.jugador.has_node("Estadisticas"):
-			var stats = GameManager.jugador.get_node("Estadisticas")
+		var gm = _get_game_manager()
+		if gm and gm.jugador and gm.jugador.has_node("Estadisticas"):
+			var stats = gm.jugador.get_node("Estadisticas")
 			# Implementar lógica de invulnerabilidad en Estadisticas
 			log_msg("Modo Dios no implementado completamente.", Color.YELLOW)
 	)
@@ -106,6 +108,18 @@ func _registrar_comandos_base():
 			return
 		var id = args[0]
 		var cantidad = int(args[1]) if args.size() > 1 else 1
-		InventarioGlobal.anadir_objeto(id, cantidad)
-		log_msg("Añadido %d de %s" % [cantidad, id], Color.GREEN)
+		var inv = _get_inventory_manager()
+		if inv:
+			inv.anadir_objeto(id, cantidad)
+			log_msg("Añadido %d de %s" % [cantidad, id], Color.GREEN)
 	)
+
+func _get_game_manager() -> Node:
+	if Engine.has_singleton("GameManager"): return Engine.get_singleton("GameManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("GameManager")
+	return null
+
+func _get_inventory_manager() -> Node:
+	if Engine.has_singleton("InventarioGlobal"): return Engine.get_singleton("InventarioGlobal")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("InventarioGlobal")
+	return null

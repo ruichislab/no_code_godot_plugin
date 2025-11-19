@@ -11,7 +11,6 @@
 ## - Control de voces
 ##
 ## **Requisito:** Debe heredar de HSlider.
-@icon("res://icon.svg")
 class_name ComponenteVolumeSlider
 extends HSlider
 const _tool_context = "RuichisLab/Nodos"

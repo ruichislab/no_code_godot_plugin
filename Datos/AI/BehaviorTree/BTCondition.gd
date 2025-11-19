@@ -10,14 +10,20 @@ enum Operador { IGUAL, MAYOR, MENOR, DISTINTO }
 @export var operador: Operador = Operador.IGUAL
 @export var valor_comparar: float = 0.0 # Simplificado a float/bool
 
+func _get_variable_manager():
+	if Engine.has_singleton("VariableManager"):
+		return Engine.get_singleton("VariableManager")
+	return null
+
 func tick(actor: Node, blackboard: Blackboard) -> Status:
 	var valor_actual
 	
 	if tipo == TipoCheck.BLACKBOARD:
 		valor_actual = blackboard.get_valor(clave, 0.0)
 	else:
-		if VariableManager:
-			valor_actual = VariableManager.get_valor(clave, 0.0)
+		var vm = _get_variable_manager()
+		if vm:
+			valor_actual = vm.get_valor(clave, 0.0)
 		else:
 			return Status.FAILURE
 

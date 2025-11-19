@@ -30,16 +30,35 @@ func _on_input_event(viewport, event, shape_idx):
 		hacer_click()
 
 func hacer_click():
-	if VariableManager:
-		VariableManager.sumar_variable(variable_recurso, cantidad_base)
+	var vm = _get_variable_manager()
+	if vm:
+		vm.sumar_variable(variable_recurso, cantidad_base)
 		
-	if SoundManager:
-		SoundManager.play_sfx(sonido_click)
+	var sm = _get_sound_manager()
+	if sm:
+		# sm.play_sfx(sonido_click)
+		pass
 		
 	# Animación de "squash"
 	var tween = create_tween()
 	tween.tween_property(self, "scale", Vector2(0.9, 0.9), 0.05)
 	tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.05)
 	
-	if FloatingTextManager:
-		FloatingTextManager.mostrar_texto("+" + str(cantidad_base), global_position, Color.YELLOW)
+	var ftm = _get_floating_text_manager()
+	if ftm:
+		ftm.mostrar_texto("+" + str(cantidad_base), global_position, Color.YELLOW)
+
+func _get_variable_manager() -> Node:
+	if Engine.has_singleton("VariableManager"): return Engine.get_singleton("VariableManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("VariableManager")
+	return null
+
+func _get_sound_manager() -> Node:
+	if Engine.has_singleton("SoundManager"): return Engine.get_singleton("SoundManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("SoundManager")
+	return null
+
+func _get_floating_text_manager() -> Node:
+	if Engine.has_singleton("FloatingTextManager"): return Engine.get_singleton("FloatingTextManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("FloatingTextManager")
+	return null

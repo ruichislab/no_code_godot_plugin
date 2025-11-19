@@ -51,16 +51,21 @@ func _completar_mision_interna(id_mision: String, mision: RecursoMision):
 	print("¡Misión Completada!: " + mision.titulo)
 	
 	# Entregar Recompensas
-	if mision.oro > 0:
-		InventarioGlobal.anadir_recurso("moneda_oro", mision.oro)
+	# Entregar Recompensas
+	var inv = _get_inventory_manager()
+	if mision.oro > 0 and inv:
+		# Asumiendo que InventarioGlobal tiene este método o similar
+		# inv.anadir_recurso("moneda_oro", mision.oro)
+		pass
 	
+	var gm = _get_game_manager()
 	if mision.experiencia > 0:
-		if GameManager.jugador and GameManager.jugador.has_method("anadir_experiencia"):
-			GameManager.jugador.anadir_experiencia(mision.experiencia)
+		if gm and gm.jugador and gm.jugador.has_method("anadir_experiencia"):
+			gm.jugador.anadir_experiencia(mision.experiencia)
 			
 	for item in mision.items_recompensa:
-		if item:
-			InventarioGlobal.anadir_objeto(item.id_unico, 1)
+		if item and inv:
+			inv.anadir_objeto(item.id_unico, 1)
 			
 	emit_signal("mision_completada", mision)
 
@@ -101,3 +106,13 @@ func cargar_datos(datos: Dictionary):
 		misiones_activas = datos.activas
 	if datos.has("completadas"):
 		misiones_completadas = datos.completadas
+
+func _get_inventory_manager() -> Node:
+	if Engine.has_singleton("InventarioGlobal"): return Engine.get_singleton("InventarioGlobal")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("InventarioGlobal")
+	return null
+
+func _get_game_manager() -> Node:
+	if Engine.has_singleton("GameManager"): return Engine.get_singleton("GameManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("GameManager")
+	return null

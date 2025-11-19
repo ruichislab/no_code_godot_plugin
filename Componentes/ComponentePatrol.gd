@@ -11,7 +11,6 @@
 ## - NPCs con rutinas
 ##
 ## **Nota:** Define los waypoints como nodos Marker2D hijos.
-@icon("res://icon.svg")
 @tool
 class_name ComponentePatrol
 extends Node2D

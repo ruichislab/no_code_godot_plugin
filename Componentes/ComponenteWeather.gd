@@ -11,7 +11,6 @@
 ## - Tormentas
 ##
 ## **Requisito:** Debe heredar de Node2D.
-@icon("res://icon.svg")
 class_name ComponenteWeather
 extends Node2D
 const _tool_context = "RuichisLab/Nodos"

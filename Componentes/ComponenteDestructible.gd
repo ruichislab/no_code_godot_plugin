@@ -47,11 +47,24 @@ func _ready():
 	else:
 		push_warning("NC_Destructible: No se encontró NC_Hurtbox en el padre.")
 
+func _get_sound_manager():
+	if Engine.has_singleton("SoundManager"):
+		return Engine.get_singleton("SoundManager")
+	if Engine.has_singleton("AudioManager"):
+		return Engine.get_singleton("AudioManager")
+	if is_inside_tree():
+		return get_tree().root.get_node_or_null("SoundManager") or get_tree().root.get_node_or_null("AudioManager")
+	return null
+
 func _on_dano_recibido(cantidad, origen):
 	salud_actual -= cantidad
 	
-	if SoundManager:
-		SoundManager.play_sfx(sonido_impacto)
+	var sm = _get_sound_manager()
+	if sm:
+		if sm.has_method("play_sfx"):
+			sm.play_sfx(sonido_impacto)
+		elif sm.has_method("reproducir_sonido") and typeof(sonido_impacto) == TYPE_OBJECT:
+			sm.reproducir_sonido(sonido_impacto)
 		
 	# Feedback visual (flash blanco)
 	if padre.modulate == Color.WHITE:
@@ -63,8 +76,12 @@ func _on_dano_recibido(cantidad, origen):
 		destruir()
 
 func destruir():
-	if SoundManager:
-		SoundManager.play_sfx(sonido_destruccion)
+	var sm = _get_sound_manager()
+	if sm:
+		if sm.has_method("play_sfx"):
+			sm.play_sfx(sonido_destruccion)
+		elif sm.has_method("reproducir_sonido") and typeof(sonido_destruccion) == TYPE_OBJECT:
+			sm.reproducir_sonido(sonido_destruccion)
 		
 	if particulas_destruccion:
 		var p = particulas_destruccion.instantiate()

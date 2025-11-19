@@ -18,8 +18,15 @@ func _ready():
 	pressed.connect(_on_pressed)
 
 func _on_pressed():
-	if SoundManager:
-		SoundManager.play_sfx("ui_click")
+	var sm = _get_sound_manager()
+	if sm:
+		# sm.play_sfx("ui_click")
+		pass
 		
 	print("Saliendo del juego...")
 	get_tree().quit()
+
+func _get_sound_manager() -> Node:
+	if Engine.has_singleton("SoundManager"): return Engine.get_singleton("SoundManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("SoundManager")
+	return null

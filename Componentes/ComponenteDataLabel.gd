@@ -23,8 +23,9 @@ const _tool_context = "RuichisLab/Nodos"
 func _ready():
 	actualizar_texto()
 	
-	if VariableManager and not actualizar_cada_frame:
-		VariableManager.variable_cambiada.connect(_on_variable_cambiada)
+	var vm = _get_variable_manager()
+	if vm and not actualizar_cada_frame:
+		vm.variable_cambiada.connect(_on_variable_cambiada)
 
 func _process(delta):
 	if actualizar_cada_frame:
@@ -36,7 +37,13 @@ func _on_variable_cambiada(nombre, valor):
 
 func actualizar_texto():
 	var valor = "0"
-	if VariableManager:
-		valor = str(VariableManager.obtener_valor(nombre_variable))
+	var vm = _get_variable_manager()
+	if vm:
+		valor = str(vm.obtener_valor(nombre_variable))
 		
 	text = formato % valor
+
+func _get_variable_manager() -> Node:
+	if Engine.has_singleton("VariableManager"): return Engine.get_singleton("VariableManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("VariableManager")
+	return null

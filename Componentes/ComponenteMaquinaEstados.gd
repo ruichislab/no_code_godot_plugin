@@ -11,7 +11,6 @@
 ## - Comportamientos del jugador
 ##
 ## **Nota:** Cada estado debe heredar de una clase Estado base.
-@icon("res://icon.svg")
 class_name ComponenteMaquinaEstados
 extends Node
 const _tool_context = "RuichisLab/Nodos"

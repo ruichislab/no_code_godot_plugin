@@ -35,8 +35,12 @@ func _ready():
 		add_child(sprite_node)
 		
 	# Cargar estado
-	if VariableManager:
-		abierto = VariableManager.obtener_valor("chest_" + id_cofre)
+	# Cargar estado
+	var vm = _get_variable_manager()
+	if vm:
+		var val = vm.obtener_valor("chest_" + id_cofre)
+		if val != null:
+			abierto = val
 		
 	_actualizar_visual()
 
@@ -50,20 +54,26 @@ func abrir():
 	abierto = true
 	
 	# Guardar estado
-	if VariableManager:
-		VariableManager.set_valor("chest_" + id_cofre, true)
+	# Guardar estado
+	var vm = _get_variable_manager()
+	if vm:
+		vm.set_valor("chest_" + id_cofre, true)
 	
 	# Dar item
-	if item_contenido and InventarioGlobal:
-		InventarioGlobal.anadir_objeto(item_contenido.id_unico, cantidad)
+	var inv = _get_inventory_manager()
+	if item_contenido and inv:
+		inv.anadir_objeto(item_contenido.id_unico, cantidad)
 		print("Obtenido: %s x%d" % [item_contenido.nombre, cantidad])
 		
-		if FloatingTextManager:
-			FloatingTextManager.mostrar_texto("+%s" % item_contenido.nombre, global_position + Vector2(0, -40), Color.GOLD)
+		var ftm = _get_floating_text_manager()
+		if ftm:
+			ftm.mostrar_texto("+%s" % item_contenido.nombre, global_position + Vector2(0, -40), Color.GOLD)
 	
 	# Sonido
-	if SoundManager:
-		SoundManager.play_sfx(sonido_abrir)
+	var sm = _get_sound_manager()
+	if sm:
+		# sm.play_sfx(sonido_abrir)
+		pass
 		
 	_actualizar_visual()
 
@@ -73,3 +83,23 @@ func _actualizar_visual():
 			sprite_node.texture = sprite_abierto
 		elif not abierto and sprite_cerrado:
 			sprite_node.texture = sprite_cerrado
+
+func _get_variable_manager() -> Node:
+	if Engine.has_singleton("VariableManager"): return Engine.get_singleton("VariableManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("VariableManager")
+	return null
+
+func _get_inventory_manager() -> Node:
+	if Engine.has_singleton("InventarioGlobal"): return Engine.get_singleton("InventarioGlobal")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("InventarioGlobal")
+	return null
+
+func _get_floating_text_manager() -> Node:
+	if Engine.has_singleton("FloatingTextManager"): return Engine.get_singleton("FloatingTextManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("FloatingTextManager")
+	return null
+
+func _get_sound_manager() -> Node:
+	if Engine.has_singleton("SoundManager"): return Engine.get_singleton("SoundManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("SoundManager")
+	return null

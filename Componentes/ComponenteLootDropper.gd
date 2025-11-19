@@ -30,8 +30,10 @@ func _ready():
 	var padre = get_parent()
 	
 	# Opción A: Conectarse al EventBus (Más desacoplado)
-	if EventBus:
-		EventBus.entidad_murio.connect(_on_entidad_murio)
+	# Opción A: Conectarse al EventBus (Más desacoplado)
+	var eb = _get_event_bus()
+	if eb:
+		eb.entidad_murio.connect(_on_entidad_murio)
 		
 	# Opción B: Conectarse a señal local (si existe)
 	if padre.has_signal("muerto"):
@@ -75,3 +77,8 @@ func spawnear_item_en_mundo(item: RecursoObjeto):
 	tween.tween_property(sprite, "global_position", destino, 0.5).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
 	
 	# TODO: Añadir ComponenteInteraccion a este sprite para poder recogerlo
+
+func _get_event_bus() -> Node:
+	if Engine.has_singleton("EventBus"): return Engine.get_singleton("EventBus")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("EventBus")
+	return null

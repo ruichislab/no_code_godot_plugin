@@ -11,7 +11,6 @@
 ## - Ataques de enemigos
 ##
 ## **Requisito:** Debe ser hijo de un Area2D.
-@icon("res://icon.svg")
 class_name ComponenteHitbox
 extends Area2D
 const _tool_context = "RuichisLab/Nodos"

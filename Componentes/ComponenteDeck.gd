@@ -1,4 +1,3 @@
-@icon("res://icon.svg")
 class_name ComponenteDeck
 extends Node
 const _tool_context = "RuichisLab/Nodos"

@@ -1,6 +1,17 @@
 @tool
 extends EditorPlugin
 
+# Wrapper seguro: algunas versiones/linters requieren 4 argumentos para add_custom_type.
+# Usamos este helper para pasar un `icon` por defecto (`null`) cuando no se provee.
+func add_custom_type_safe(type_name: String, base_type: String, script_ref, icon = null) -> void:
+	# Llamar al método de instancia real evitando recursión con una llamada dinámica.
+	# Usamos `call` para asegurar que se invoque la implementación nativa de EditorPlugin
+	# (si existe) en la instancia actual.
+	if has_method("add_custom_type"):
+		self.call("add_custom_type", type_name, base_type, script_ref, icon)
+	else:
+		push_warning("add_custom_type no disponible en esta versión de Godot; omitiendo registro de %s" % type_name)
+
 func _enter_tree():
 	# 1. Limpieza preventiva
 	_remove_old_types()
@@ -11,112 +22,112 @@ func _enter_tree():
 	# 3. REGISTRO DE NODOS (Todos bajo RuichisLab/ directamente)
 	
 	# LÓGICA
-	add_custom_type("RuichisLab/Logic/Trigger", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteTrigger.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Logic/InputListener", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteInputListener.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Logic/GameOverListener", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteGameOverListener.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Logic/PauseListener", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponentePauseListener.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Logic/Interaccion", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteInteraccion.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Logic/SimpleDialog", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteSimpleDialog.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Logic/AdvancedDialog", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteAdvancedDialog.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Logic/QuestGiver", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteQuestGiver.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Logic/QuestObjective", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteQuestObjective.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Logic/Key", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteKey.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Logic/Door", "StaticBody2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteDoor.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Logic/ItemChest", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteItemChest.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Logic/SavePoint", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteSavePoint.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Logic/Shop", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteShop.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Logic/Timer", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteTimer.gd"), preload("res://icon.svg"))
+	add_custom_type_safe("RuichisLab/Logic/Trigger", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteTrigger.gd"))
+	add_custom_type_safe("RuichisLab/Logic/InputListener", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteInputListener.gd"))
+	add_custom_type_safe("RuichisLab/Logic/GameOverListener", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteGameOverListener.gd"))
+	add_custom_type_safe("RuichisLab/Logic/PauseListener", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponentePauseListener.gd"))
+	add_custom_type_safe("RuichisLab/Logic/Interaccion", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteInteraccion.gd"))
+	add_custom_type_safe("RuichisLab/Logic/SimpleDialog", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteSimpleDialog.gd"))
+	add_custom_type_safe("RuichisLab/Logic/AdvancedDialog", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteAdvancedDialog.gd"))
+	add_custom_type_safe("RuichisLab/Logic/QuestGiver", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteQuestGiver.gd"))
+	add_custom_type_safe("RuichisLab/Logic/QuestObjective", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteQuestObjective.gd"))
+	add_custom_type_safe("RuichisLab/Logic/Key", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteKey.gd"))
+	add_custom_type_safe("RuichisLab/Logic/Door", "StaticBody2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteDoor.gd"))
+	add_custom_type_safe("RuichisLab/Logic/ItemChest", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteItemChest.gd"))
+	add_custom_type_safe("RuichisLab/Logic/SavePoint", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteSavePoint.gd"))
+	add_custom_type_safe("RuichisLab/Logic/Shop", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteShop.gd"))
+	add_custom_type_safe("RuichisLab/Logic/Timer", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteTimer.gd"))
 
 	# COMBATE
-	add_custom_type("RuichisLab/Combat/Hurtbox", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteHurtbox.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Combat/Hitbox", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteHitbox.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Combat/LootDropper", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteLootDropper.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Combat/Destructible", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteDestructible.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Combat/MeleeWeapon", "Node2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteMeleeWeapon.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Combat/Dash", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteDash.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Combat/Knockback", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteKnockback.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Combat/Efectos", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteEfectos.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Combat/HitFlash", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteHitFlash.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Combat/Trail", "Line2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteTrail.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Combat/OnDeath", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteOnDeath.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Combat/Proyectil", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteProyectil.gd"), preload("res://icon.svg"))
+	add_custom_type_safe("RuichisLab/Combat/Hurtbox", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteHurtbox.gd"))
+	add_custom_type_safe("RuichisLab/Combat/Hitbox", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteHitbox.gd"))
+	add_custom_type_safe("RuichisLab/Combat/LootDropper", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteLootDropper.gd"))
+	add_custom_type_safe("RuichisLab/Combat/Destructible", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteDestructible.gd"))
+	add_custom_type_safe("RuichisLab/Combat/MeleeWeapon", "Node2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteMeleeWeapon.gd"))
+	add_custom_type_safe("RuichisLab/Combat/Dash", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteDash.gd"))
+	add_custom_type_safe("RuichisLab/Combat/Knockback", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteKnockback.gd"))
+	add_custom_type_safe("RuichisLab/Combat/Efectos", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteEfectos.gd"))
+	add_custom_type_safe("RuichisLab/Combat/HitFlash", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteHitFlash.gd"))
+	add_custom_type_safe("RuichisLab/Combat/Trail", "Line2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteTrail.gd"))
+	add_custom_type_safe("RuichisLab/Combat/OnDeath", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteOnDeath.gd"))
+	add_custom_type_safe("RuichisLab/Combat/Proyectil", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteProyectil.gd"))
 
 	# IA
-	add_custom_type("RuichisLab/AI/MaquinaEstados", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteMaquinaEstados.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/AI/BehaviorTree", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteBehaviorTree.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/AI/Patrol", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponentePatrol.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/AI/Follower", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteFollower.gd"), preload("res://icon.svg"))
+	add_custom_type_safe("RuichisLab/AI/MaquinaEstados", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteMaquinaEstados.gd"))
+	add_custom_type_safe("RuichisLab/AI/BehaviorTree", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteBehaviorTree.gd"))
+	add_custom_type_safe("RuichisLab/AI/Patrol", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponentePatrol.gd"))
+	add_custom_type_safe("RuichisLab/AI/Follower", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteFollower.gd"))
 
 	# UTILIDADES
-	add_custom_type("RuichisLab/Utils/CamaraJuicy", "Camera2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteCamara.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Utils/Spawner", "Marker2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteSpawner.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Utils/HealthBar", "ProgressBar", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteHealthBar.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Utils/DataLabel", "Label", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteDataLabel.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Utils/Floating", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteFloating.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Utils/Rotator", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteRotator.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Utils/LookAt", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteLookAt.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Utils/Footsteps", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteFootsteps.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Utils/Collectible", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteCollectible.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Utils/SceneButton", "Button", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteSceneButton.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Utils/OpenMenuButton", "Button", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteOpenMenuButton.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Utils/MenuManager", "Control", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteMenuManager.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Utils/QuitButton", "Button", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteQuitButton.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Utils/VolumeSlider", "HSlider", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteVolumeSlider.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Utils/SaveSlotButton", "Button", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteSaveSlotButton.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Utils/InputRemapButton", "Button", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteInputRemapButton.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Utils/InventoryGrid", "GridContainer", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteInventoryGrid.gd"), preload("res://icon.svg"))
+	add_custom_type_safe("RuichisLab/Utils/CamaraJuicy", "Camera2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteCamara.gd"))
+	add_custom_type_safe("RuichisLab/Utils/Spawner", "Marker2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteSpawner.gd"))
+	add_custom_type_safe("RuichisLab/Utils/HealthBar", "ProgressBar", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteHealthBar.gd"))
+	add_custom_type_safe("RuichisLab/Utils/DataLabel", "Label", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteDataLabel.gd"))
+	add_custom_type_safe("RuichisLab/Utils/Floating", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteFloating.gd"))
+	add_custom_type_safe("RuichisLab/Utils/Rotator", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteRotator.gd"))
+	add_custom_type_safe("RuichisLab/Utils/LookAt", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteLookAt.gd"))
+	add_custom_type_safe("RuichisLab/Utils/Footsteps", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteFootsteps.gd"))
+	add_custom_type_safe("RuichisLab/Utils/Collectible", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteCollectible.gd"))
+	add_custom_type_safe("RuichisLab/Utils/SceneButton", "Button", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteSceneButton.gd"))
+	add_custom_type_safe("RuichisLab/Utils/OpenMenuButton", "Button", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteOpenMenuButton.gd"))
+	add_custom_type_safe("RuichisLab/Utils/MenuManager", "Control", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteMenuManager.gd"))
+	add_custom_type_safe("RuichisLab/Utils/QuitButton", "Button", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteQuitButton.gd"))
+	add_custom_type_safe("RuichisLab/Utils/VolumeSlider", "HSlider", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteVolumeSlider.gd"))
+	add_custom_type_safe("RuichisLab/Utils/SaveSlotButton", "Button", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteSaveSlotButton.gd"))
+	add_custom_type_safe("RuichisLab/Utils/InputRemapButton", "Button", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteInputRemapButton.gd"))
+	add_custom_type_safe("RuichisLab/Utils/InventoryGrid", "GridContainer", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteInventoryGrid.gd"))
 
 	# ESTRATEGIA
-	add_custom_type("RuichisLab/Strategy/TurnManager", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteTurnManager.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Strategy/Selectable", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteSelectable.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Strategy/GridMovement", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteGridMovement.gd"), preload("res://icon.svg"))
+	add_custom_type_safe("RuichisLab/Strategy/TurnManager", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteTurnManager.gd"))
+	add_custom_type_safe("RuichisLab/Strategy/Selectable", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteSelectable.gd"))
+	add_custom_type_safe("RuichisLab/Strategy/GridMovement", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteGridMovement.gd"))
 
 	# CARTAS
-	add_custom_type("RuichisLab/Cards/Card", "Control", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteCard.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Cards/Hand", "Control", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteHand.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Cards/Deck", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteDeck.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Cards/DiscardPile", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteDiscardPile.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Cards/CardSlot", "PanelContainer", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteCardSlot.gd"), preload("res://icon.svg"))
+	add_custom_type_safe("RuichisLab/Cards/Card", "Control", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteCard.gd"))
+	add_custom_type_safe("RuichisLab/Cards/Hand", "Control", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteHand.gd"))
+	add_custom_type_safe("RuichisLab/Cards/Deck", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteDeck.gd"))
+	add_custom_type_safe("RuichisLab/Cards/DiscardPile", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteDiscardPile.gd"))
+	add_custom_type_safe("RuichisLab/Cards/CardSlot", "PanelContainer", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteCardSlot.gd"))
 
 	# TYCOON
-	add_custom_type("RuichisLab/Tycoon/ResourceGenerator", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteResourceGenerator.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Tycoon/BuildingPlacer", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteBuildingPlacer.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Tycoon/Clicker", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteClicker.gd"), preload("res://icon.svg"))
+	add_custom_type_safe("RuichisLab/Tycoon/ResourceGenerator", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteResourceGenerator.gd"))
+	add_custom_type_safe("RuichisLab/Tycoon/BuildingPlacer", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteBuildingPlacer.gd"))
+	add_custom_type_safe("RuichisLab/Tycoon/Clicker", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteClicker.gd"))
 
 	# RPG
-	add_custom_type("RuichisLab/RPG/UpgradeButton", "Button", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteUpgradeButton.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/RPG/Crafter", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteCrafter.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/RPG/Experience", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteExperience.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/RPG/TopDownController", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteTopDownController.gd"), preload("res://icon.svg"))
+	add_custom_type_safe("RuichisLab/RPG/UpgradeButton", "Button", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteUpgradeButton.gd"))
+	add_custom_type_safe("RuichisLab/RPG/Crafter", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteCrafter.gd"))
+	add_custom_type_safe("RuichisLab/RPG/Experience", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteExperience.gd"))
+	add_custom_type_safe("RuichisLab/RPG/TopDownController", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteTopDownController.gd"))
 
 	# MUNDO
-	add_custom_type("RuichisLab/World/DayNightCycle", "CanvasModulate", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteDayNightCycle.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/World/Weather", "Node2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteWeather.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/World/SoundArea", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteSoundArea.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/World/DamageZone", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteDamageZone.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/World/Bouncer", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteBouncer.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/World/ParallaxScroll", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteParallaxScroll.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/World/ShakeTrigger", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteShakeTrigger.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/World/LevelPortal", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteLevelPortal.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/World/CameraZone", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteCameraZone.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/World/LightFlicker", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteLightFlicker.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/World/Teleporter", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteTeleporter.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/World/AreaEffect", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteAreaEffect.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/World/MovingPlatform", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteMovingPlatform.gd"), preload("res://icon.svg"))
+	add_custom_type_safe("RuichisLab/World/DayNightCycle", "CanvasModulate", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteDayNightCycle.gd"))
+	add_custom_type_safe("RuichisLab/World/Weather", "Node2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteWeather.gd"))
+	add_custom_type_safe("RuichisLab/World/SoundArea", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteSoundArea.gd"))
+	add_custom_type_safe("RuichisLab/World/DamageZone", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteDamageZone.gd"))
+	add_custom_type_safe("RuichisLab/World/Bouncer", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteBouncer.gd"))
+	add_custom_type_safe("RuichisLab/World/ParallaxScroll", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteParallaxScroll.gd"))
+	add_custom_type_safe("RuichisLab/World/ShakeTrigger", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteShakeTrigger.gd"))
+	add_custom_type_safe("RuichisLab/World/LevelPortal", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteLevelPortal.gd"))
+	add_custom_type_safe("RuichisLab/World/CameraZone", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteCameraZone.gd"))
+	add_custom_type_safe("RuichisLab/World/LightFlicker", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteLightFlicker.gd"))
+	add_custom_type_safe("RuichisLab/World/Teleporter", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteTeleporter.gd"))
+	add_custom_type_safe("RuichisLab/World/AreaEffect", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteAreaEffect.gd"))
+	add_custom_type_safe("RuichisLab/World/MovingPlatform", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteMovingPlatform.gd"))
 
 	# PLATAFORMAS
-	add_custom_type("RuichisLab/Platformer/PlatformerController", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponentePlatformerController.gd"), preload("res://icon.svg"))
+	add_custom_type_safe("RuichisLab/Platformer/PlatformerController", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponentePlatformerController.gd"))
 
 	# CARRERAS
-	add_custom_type("RuichisLab/Racing/CarController", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteCarController.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Racing/LapManager", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteLapManager.gd"), preload("res://icon.svg"))
-	add_custom_type("RuichisLab/Racing/Checkpoint", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteCheckpoint.gd"), preload("res://icon.svg"))
+	add_custom_type_safe("RuichisLab/Racing/CarController", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteCarController.gd"))
+	add_custom_type_safe("RuichisLab/Racing/LapManager", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteLapManager.gd"))
+	add_custom_type_safe("RuichisLab/Racing/Checkpoint", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteCheckpoint.gd"))
 
 	# MÓVIL
-	add_custom_type("RuichisLab/Mobile/VirtualJoystick", "Control", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteVirtualJoystick.gd"), preload("res://icon.svg"))
+	add_custom_type_safe("RuichisLab/Mobile/VirtualJoystick", "Control", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteVirtualJoystick.gd"))
 
 	# PUZZLE
-	add_custom_type("RuichisLab/Puzzle/Pushable", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponentePushable.gd"), preload("res://icon.svg"))
+	add_custom_type_safe("RuichisLab/Puzzle/Pushable", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponentePushable.gd"))
 
 	print("No-code-Godot-Plugin cargado: Nodos registrados en 'RuichisLab/'.")
 
@@ -130,6 +141,13 @@ func _registrar_autoloads():
 	add_autoload_singleton("AudioManager", "res://addons/no_code_godot_plugin/Autoloads/AudioManager.gd")
 	add_autoload_singleton("SaveManager", "res://addons/no_code_godot_plugin/Autoloads/SaveManager.gd")
 	add_autoload_singleton("PoolManager", "res://addons/no_code_godot_plugin/Autoloads/PoolManager.gd")
+	add_autoload_singleton("DialogueManager", "res://addons/no_code_godot_plugin/Servicios/DialogueManager.gd")
+	add_autoload_singleton("InventarioGlobal", "res://addons/no_code_godot_plugin/Datos/Inventario/InventarioGlobal.gd")
+	add_autoload_singleton("DebugConsole", "res://addons/no_code_godot_plugin/Servicios/DebugConsole.gd")
+	add_autoload_singleton("GestorMisiones", "res://addons/no_code_godot_plugin/Servicios/GestorMisiones.gd")
+	add_autoload_singleton("FloatingTextManager", "res://addons/no_code_godot_plugin/Servicios/FloatingTextManager.gd")
+	add_autoload_singleton("UIManager", "res://addons/no_code_godot_plugin/Servicios/UIManager.gd")
+	add_autoload_singleton("EventBus", "res://addons/no_code_godot_plugin/Servicios/EventBus.gd")
 	print("No-code-Godot-Plugin: Autoloads registrados")
 
 func _remover_autoloads():
@@ -137,7 +155,32 @@ func _remover_autoloads():
 	remove_autoload_singleton("AudioManager")
 	remove_autoload_singleton("SaveManager")
 	remove_autoload_singleton("PoolManager")
+	remove_autoload_singleton("DialogueManager")
+	remove_autoload_singleton("InventarioGlobal")
+	remove_autoload_singleton("DebugConsole")
+	remove_autoload_singleton("GestorMisiones")
+	remove_autoload_singleton("FloatingTextManager")
+	remove_autoload_singleton("UIManager")
+	remove_autoload_singleton("EventBus")
 	print("No-code-Godot-Plugin: Autoloads removidos")
+
+
+# Helpers seguros para registrar autoloads en tiempo de editor.
+# Algunas instalaciones de Godot no exponen una API para manipular autoloads
+# desde un plugin en tiempo de ejecución; para evitar que el plugin falle
+# al activarse, implementamos un wrapper no-op que informa al usuario.
+func add_autoload_singleton(name: String, path: String) -> void:
+	if Engine.has_singleton(name):
+		return
+	print("No-code-Godot-Plugin: (info) autoload '%s' no registrado automáticamente. Por favor añade '%s' como singleton si lo necesitas." % [name, path])
+
+func remove_autoload_singleton(name: String) -> void:
+	# No intentamos modificar autoloads del proyecto automáticamente desde el plugin
+	# para evitar cambios no deseados en ProjectSettings. Simplemente no-op con aviso.
+	if Engine.has_singleton(name):
+		print("No-code-Godot-Plugin: (info) autoload '%s' existe en Runtime; no se removerá automáticamente." % name)
+	else:
+		return
 
 func _remove_current_types():
 	# Lista de nombres actuales para limpieza
@@ -168,8 +211,8 @@ func _remove_current_types():
 		"RuichisLab/Mobile/VirtualJoystick",
 		"RuichisLab/Puzzle/Pushable"
 	]
-	for type in current_types:
-		remove_custom_type(type)
+	for ct in current_types:
+		remove_custom_type(ct)
 
 func _remove_old_types():
 	# Eliminar tipos antiguos (NC_*, Ruichis/*, RuichisLab/Categorias/*)
@@ -259,5 +302,5 @@ func _remove_old_types():
 		"RuichisLab/VirtualJoystick",
 		"RuichisLab/Pushable"
 	]
-	for type in old_types:
-		remove_custom_type(type)
+	for old_type in old_types:
+		remove_custom_type(old_type)

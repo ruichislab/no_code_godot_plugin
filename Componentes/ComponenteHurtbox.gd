@@ -11,7 +11,6 @@
 ## - Jefes
 ##
 ## **Requisito:** Debe ser hijo de un Area2D. Requiere nodo Estadisticas.
-@icon("res://icon.svg")
 class_name ComponenteHurtbox
 extends Area2D
 const _tool_context = "RuichisLab/Nodos"
@@ -44,8 +43,10 @@ func recibir_dano(cantidad: float, origen: Node = null):
 	emit_signal("dano_recibido", cantidad, origen)
 	
 	# Notificar al sistema global (para textos flotantes, misiones, etc.)
-	if GameManager:
-		GameManager.emitir_evento("dano_recibido", {"entidad": get_parent(), "cantidad": cantidad})
+	# Notificar al sistema global (para textos flotantes, misiones, etc.)
+	var gm = _get_game_manager()
+	if gm:
+		gm.emitir_evento("dano_recibido", {"entidad": get_parent(), "cantidad": cantidad})
 	
 	if nodo_estadisticas:
 		nodo_estadisticas.aplicar_dano(cantidad)
@@ -56,4 +57,11 @@ func _get_configuration_warnings() -> PackedStringArray:
 	var warnings = []
 	if not nodo_estadisticas:
 		warnings.append("Asigna un nodo 'Estadisticas' para que el daño afecte la salud.")
+	if not nodo_estadisticas:
+		warnings.append("Asigna un nodo 'Estadisticas' para que el daño afecte la salud.")
 	return warnings
+
+func _get_game_manager() -> Node:
+	if Engine.has_singleton("GameManager"): return Engine.get_singleton("GameManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("GameManager")
+	return null

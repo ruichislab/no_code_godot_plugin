@@ -11,7 +11,6 @@
 ## - Combate táctico
 ##
 ## **Nota:** Emite señales cuando cambia el turno.
-@icon("res://icon.svg")
 class_name ComponenteTurnManager
 extends Node
 const _tool_context = "RuichisLab/Nodos"

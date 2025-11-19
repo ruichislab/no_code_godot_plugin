@@ -41,12 +41,15 @@ func _ready():
 func _on_timeout():
 	if not activo: return
 	
-	if VariableManager:
-		VariableManager.sumar_variable(variable_recurso, cantidad_por_ciclo)
+	var vm = _get_variable_manager()
+	if vm:
+		vm.sumar_variable(variable_recurso, cantidad_por_ciclo)
 		
-		if mostrar_texto_flotante and FloatingTextManager:
-			var pos = get_parent().global_position
-			FloatingTextManager.mostrar_texto("+" + str(cantidad_por_ciclo), pos, Color.GOLD)
+		if mostrar_texto_flotante:
+			var ftm = _get_floating_text_manager()
+			if ftm:
+				var pos = get_parent().global_position
+				ftm.mostrar_texto("+" + str(cantidad_por_ciclo), pos, Color.GOLD)
 
 func set_activo(valor: bool):
 	activo = valor
@@ -54,3 +57,13 @@ func set_activo(valor: bool):
 		timer.start()
 	else:
 		timer.stop()
+
+func _get_variable_manager() -> Node:
+	if Engine.has_singleton("VariableManager"): return Engine.get_singleton("VariableManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("VariableManager")
+	return null
+
+func _get_floating_text_manager() -> Node:
+	if Engine.has_singleton("FloatingTextManager"): return Engine.get_singleton("FloatingTextManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("FloatingTextManager")
+	return null

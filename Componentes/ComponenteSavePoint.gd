@@ -30,15 +30,40 @@ func interactuar():
 func guardar():
 	print("Guardando partida...")
 	
-	if SistemaGuardado:
-		SistemaGuardado.guardar_juego()
-		
-	if restaurar_salud and GameManager and GameManager.jugador:
-		if GameManager.jugador.has_node("Estadisticas"):
-			GameManager.jugador.get_node("Estadisticas").curar_completo()
+	var sg = _get_save_system()
+	if sg:
+		sg.guardar_juego()
+	
+	var gm = _get_game_manager()
+	if restaurar_salud and gm and gm.jugador:
+		if gm.jugador.has_node("Estadisticas"):
+			gm.jugador.get_node("Estadisticas").curar_completo()
 			
-	if SoundManager:
-		SoundManager.play_sfx(sonido_guardar)
+	var sm = _get_sound_manager()
+	if sm:
+		# sm.play_sfx(sonido_guardar)
+		pass
 		
-	if FloatingTextManager:
-		FloatingTextManager.mostrar_texto("¡Partida Guardada!", global_position + Vector2(0, -50), Color.GREEN)
+	var ftm = _get_floating_text_manager()
+	if ftm:
+		ftm.mostrar_texto("¡Partida Guardada!", global_position + Vector2(0, -50), Color.GREEN)
+
+func _get_save_system() -> Node:
+	if Engine.has_singleton("SistemaGuardado"): return Engine.get_singleton("SistemaGuardado")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("SistemaGuardado")
+	return null
+
+func _get_game_manager() -> Node:
+	if Engine.has_singleton("GameManager"): return Engine.get_singleton("GameManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("GameManager")
+	return null
+
+func _get_sound_manager() -> Node:
+	if Engine.has_singleton("SoundManager"): return Engine.get_singleton("SoundManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("SoundManager")
+	return null
+
+func _get_floating_text_manager() -> Node:
+	if Engine.has_singleton("FloatingTextManager"): return Engine.get_singleton("FloatingTextManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("FloatingTextManager")
+	return null

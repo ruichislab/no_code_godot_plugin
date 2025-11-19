@@ -11,7 +11,6 @@
 ## - Poker
 ##
 ## **Requisito:** Debe heredar de Control.
-@icon("res://icon.svg")
 class_name ComponenteCard
 extends Control
 const _tool_context = "RuichisLab/Nodos"

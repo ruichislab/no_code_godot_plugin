@@ -6,8 +6,9 @@ extends Node
 func _ready():
 	# Nos conectamos al bus de eventos para reaccionar automáticamente al daño
 	# Esto significa que NO necesitamos modificar cada script de enemigo.
-	if get_tree().root.has_node("EventBus"):
-		EventBus.entidad_danada.connect(_on_entidad_danada)
+	var eb = _get_event_bus()
+	if eb:
+		eb.entidad_danada.connect(_on_entidad_danada)
 
 func _on_entidad_danada(entidad: Node, cantidad: float, es_critico: bool):
 	if entidad is Node2D:
@@ -36,3 +37,8 @@ func mostrar_texto(texto: String, posicion: Vector2, color: Color = Color.WHITE,
 	
 	# Limpieza
 	tween.chain().tween_callback(label.queue_free)
+
+func _get_event_bus() -> Node:
+	if Engine.has_singleton("EventBus"): return Engine.get_singleton("EventBus")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("EventBus")
+	return null

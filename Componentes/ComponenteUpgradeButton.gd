@@ -11,7 +11,6 @@
 ## - Tienda de mejoras
 ##
 ## **Requisito:** Debe heredar de Button.
-@icon("res://icon.svg")
 class_name ComponenteUpgradeButton
 extends Button
 const _tool_context = "RuichisLab/Nodos"
@@ -24,6 +23,15 @@ const _tool_context = "RuichisLab/Nodos"
 @export var coste: int = 100
 ## Texto del botón antes de comprar.
 @export var texto_base: String = "Comprar Doble Salto"
+
+func _get_sound_manager():
+	if Engine.has_singleton("SoundManager"):
+		return Engine.get_singleton("SoundManager")
+	if Engine.has_singleton("AudioManager"):
+		return Engine.get_singleton("AudioManager")
+	if is_inside_tree():
+		return get_tree().root.get_node_or_null("SoundManager") or get_tree().root.get_node_or_null("AudioManager")
+	return null
 
 func _ready():
 	pressed.connect(_on_pressed)
@@ -54,7 +62,9 @@ func _on_pressed():
 		VariableManager.sumar_variable(variable_coste, -coste)
 		VariableManager.definir_variable(id_mejora, true)
 		
-		if SoundManager:
-			SoundManager.play_sfx("upgrade")
+		var sm = _get_sound_manager()
+		if sm:
+			if sm.has_method("play_sfx"):
+				sm.play_sfx("upgrade")
 			
 		actualizar_estado()

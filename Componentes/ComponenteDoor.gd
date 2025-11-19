@@ -52,8 +52,9 @@ func _on_body_entered(body):
 		intentar_abrir()
 
 func intentar_abrir():
-	if VariableManager:
-		if VariableManager.obtener_valor(id_llave):
+	var vm = _get_variable_manager()
+	if vm:
+		if vm.obtener_valor(id_llave):
 			abrir()
 		else:
 			bloqueado()
@@ -64,8 +65,12 @@ func intentar_abrir():
 func abrir():
 	abierta = true
 	print("Puerta abierta.")
-	if SoundManager:
-		SoundManager.play_sfx(sonido_abrir)
+	abierta = true
+	print("Puerta abierta.")
+	var sm = _get_sound_manager()
+	if sm:
+		# sm.play_sfx(sonido_abrir)
+		pass
 		
 	# Desactivar colisión física
 	collision_layer = 0
@@ -77,11 +82,24 @@ func abrir():
 
 func bloqueado():
 	print("Puerta cerrada. Necesitas: " + id_llave)
-	if SoundManager:
-		SoundManager.play_sfx(sonido_bloqueado)
+	var sm = _get_sound_manager()
+	if sm:
+		# sm.play_sfx(sonido_bloqueado)
+		pass
 	
 	# Feedback visual (sacudida)
 	var tween = create_tween()
 	tween.tween_property(self, "position:x", position.x + 5, 0.05)
 	tween.tween_property(self, "position:x", position.x - 5, 0.05)
+	tween.tween_property(self, "position:x", position.x - 5, 0.05)
 	tween.tween_property(self, "position:x", position.x, 0.05)
+
+func _get_variable_manager() -> Node:
+	if Engine.has_singleton("VariableManager"): return Engine.get_singleton("VariableManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("VariableManager")
+	return null
+
+func _get_sound_manager() -> Node:
+	if Engine.has_singleton("SoundManager"): return Engine.get_singleton("SoundManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("SoundManager")
+	return null

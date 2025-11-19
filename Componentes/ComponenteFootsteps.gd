@@ -45,8 +45,10 @@ func _process(delta):
 
 func reproducir_paso():
 	var stream = sonidos_pasos.pick_random()
-	if SoundManager:
-		SoundManager.play_sfx_stream(stream, volumen_db, pitch_random)
+	var sm = _get_sound_manager()
+	if sm:
+		# sm.play_sfx_stream(stream, volumen_db, pitch_random)
+		pass
 	else:
 		# Fallback local
 		var player = AudioStreamPlayer2D.new()
@@ -55,4 +57,10 @@ func reproducir_paso():
 		player.pitch_scale = 1.0 + randf_range(-pitch_random, pitch_random)
 		add_child(player)
 		player.play()
+		player.play()
 		player.finished.connect(player.queue_free)
+
+func _get_sound_manager() -> Node:
+	if Engine.has_singleton("SoundManager"): return Engine.get_singleton("SoundManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("SoundManager")
+	return null

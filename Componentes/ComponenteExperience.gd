@@ -37,12 +37,23 @@ func ganar_experiencia(cantidad: int):
 		subir_nivel()
 		necesaria = calcular_xp_necesaria()
 
+func _get_sound_manager():
+	if Engine.has_singleton("SoundManager"):
+		return Engine.get_singleton("SoundManager")
+	if Engine.has_singleton("AudioManager"):
+		return Engine.get_singleton("AudioManager")
+	if is_inside_tree():
+		return get_tree().root.get_node_or_null("SoundManager") or get_tree().root.get_node_or_null("AudioManager")
+	return null
+
 func subir_nivel():
 	nivel_actual += 1
 	emit_signal("nivel_subido", nivel_actual)
 	
-	if SoundManager:
-		SoundManager.play_sfx("levelup")
+	var sm = _get_sound_manager()
+	if sm:
+		if sm.has_method("play_sfx"):
+			sm.play_sfx("levelup")
 		
 	if FloatingTextManager:
 		FloatingTextManager.mostrar_texto("¡Nivel " + str(nivel_actual) + "!", get_parent().global_position, Color.CYAN)

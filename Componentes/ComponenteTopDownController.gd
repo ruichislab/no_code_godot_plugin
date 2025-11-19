@@ -11,7 +11,6 @@
 ## - Juegos de supervivencia
 ##
 ## **Requisito:** El padre debe ser CharacterBody2D.
-@icon("res://icon.svg")
 class_name ComponenteTopDownController
 extends Node
 const _tool_context = "RuichisLab/Nodos"

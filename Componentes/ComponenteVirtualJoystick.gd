@@ -10,7 +10,6 @@
 ## - Controles de tablet
 ##
 ## **Requisito:** Debe heredar de Control.
-@icon("res://icon.svg")
 class_name ComponenteVirtualJoystick
 extends Control
 const _tool_context = "RuichisLab/Nodos"

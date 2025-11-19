@@ -31,29 +31,59 @@ func interactuar():
 	comprar()
 
 func comprar():
-	if not VariableManager or not InventarioGlobal: return
+	var vm = _get_variable_manager()
+	var inv = _get_inventory_manager()
 	
-	var dinero_actual = VariableManager.obtener_valor(moneda_variable)
+	if not vm or not inv: return
+	
+	var dinero_actual = vm.obtener_valor(moneda_variable)
 	if typeof(dinero_actual) != TYPE_INT and typeof(dinero_actual) != TYPE_FLOAT:
 		dinero_actual = 0
 		
 	if dinero_actual >= precio:
 		# Transacción exitosa
-		VariableManager.sumar_valor(moneda_variable, -precio)
-		InventarioGlobal.anadir_objeto(item_a_vender.id_unico, 1)
+		vm.sumar_valor(moneda_variable, -precio)
+		inv.anadir_objeto(item_a_vender.id_unico, 1)
 		
 		print("Compra exitosa: %s por %d" % [item_a_vender.nombre, precio])
 		
-		if SoundManager:
-			SoundManager.play_sfx(sonido_compra)
+		var sm = _get_sound_manager()
+		if sm:
+			# sm.play_sfx(sonido_compra) # SoundManager custom?
+			# AudioManager fallback
+			pass
 			
-		if FloatingTextManager:
-			FloatingTextManager.mostrar_texto("¡Comprado!", global_position + Vector2(0, -50), Color.GREEN)
+		var ftm = _get_floating_text_manager()
+		if ftm:
+			ftm.mostrar_texto("¡Comprado!", global_position + Vector2(0, -50), Color.GREEN)
 	else:
 		# Fondos insuficientes
 		print("No tienes suficiente dinero.")
-		if SoundManager:
-			SoundManager.play_sfx(sonido_error)
+		var sm = _get_sound_manager()
+		if sm:
+			# sm.play_sfx(sonido_error)
+			pass
 			
-		if FloatingTextManager:
-			FloatingTextManager.mostrar_texto("Sin fondos", global_position + Vector2(0, -50), Color.RED)
+		var ftm = _get_floating_text_manager()
+		if ftm:
+			ftm.mostrar_texto("Sin fondos", global_position + Vector2(0, -50), Color.RED)
+
+func _get_variable_manager() -> Node:
+	if Engine.has_singleton("VariableManager"): return Engine.get_singleton("VariableManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("VariableManager")
+	return null
+
+func _get_inventory_manager() -> Node:
+	if Engine.has_singleton("InventarioGlobal"): return Engine.get_singleton("InventarioGlobal")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("InventarioGlobal")
+	return null
+
+func _get_sound_manager() -> Node:
+	if Engine.has_singleton("SoundManager"): return Engine.get_singleton("SoundManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("SoundManager")
+	return null
+
+func _get_floating_text_manager() -> Node:
+	if Engine.has_singleton("FloatingTextManager"): return Engine.get_singleton("FloatingTextManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("FloatingTextManager")
+	return null

@@ -37,15 +37,21 @@ func interactuar():
 func dar_mision():
 	if not mision: return
 	
-	if GestorMisiones:
-		if GestorMisiones.es_mision_completada(mision.id_mision):
+	var gm = _get_quest_manager()
+	if gm:
+		if gm.es_mision_completada(mision.id_mision):
 			print("NPC: ¡Gracias por tu ayuda!")
 			# Opcional: Diálogo de agradecimiento
-		elif GestorMisiones.es_mision_activa(mision.id_mision):
+		elif gm.es_mision_activa(mision.id_mision):
 			print("NPC: ¿Cómo va la tarea?")
 			# Opcional: Diálogo de recordatorio
 		else:
-			GestorMisiones.aceptar_mision(mision)
+			gm.aceptar_mision(mision)
 			print("NPC: ¡Por favor, ayúdame!")
 	else:
 		push_error("GestorMisiones no está activo.")
+
+func _get_quest_manager() -> Node:
+	if Engine.has_singleton("GestorMisiones"): return Engine.get_singleton("GestorMisiones")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("GestorMisiones")
+	return null

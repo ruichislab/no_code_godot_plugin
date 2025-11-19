@@ -11,7 +11,6 @@
 ## - Oleadas de enemigos
 ##
 ## **Requisito:** Debe ser hijo de un Marker2D. Requiere PoolManager activo.
-@icon("res://icon.svg")
 class_name ComponenteSpawner
 extends Marker2D
 const _tool_context = "RuichisLab/Nodos"
@@ -40,7 +39,8 @@ func _ready():
 
 ## Inicia el ciclo de generación.
 func iniciar():
-	_reiniciar_timer()
+	var tiempo = intervalo + randf_range(-aleatoriedad, aleatoriedad)
+	timer.start(max(0.1, tiempo))
 
 ## Detiene la generación.
 func detener():
@@ -50,8 +50,9 @@ func detener():
 func spawnear():
 	if activos >= limite_activos and limite_activos > 0: return
 	
-	if PoolManager:
-		var obj = PoolManager.spawn(id_pool, global_position, rotation)
+	var pm = _get_pool_manager()
+	if pm:
+		var obj = pm.spawn(id_pool, global_position, rotation)
 		if obj:
 			activos += 1
 			# Detectar cuando muere/desaparece para restar contador
@@ -60,8 +61,6 @@ func spawnear():
 
 func _on_timeout():
 	spawnear()
-	_reiniciar_timer()
-
 	var tiempo = intervalo + randf_range(-aleatoriedad, aleatoriedad)
 	timer.start(max(0.1, tiempo))
 
@@ -73,5 +72,11 @@ func _get_configuration_warnings() -> PackedStringArray:
 		# Nota: Esta comprobación es aproximada, ya que los autoloads se cargan en runtime.
 		# Una comprobación más robusta sería verificar si existe el nodo en el árbol si estuviéramos en runtime.
 		# Para el editor, solo podemos sugerir.
+		# Para el editor, solo podemos sugerir.
 		warnings.append("Se recomienda tener un Autoload llamado 'PoolManager' para que el pooling funcione correctamente.")
 	return warnings
+
+func _get_pool_manager() -> Node:
+	if Engine.has_singleton("PoolManager"): return Engine.get_singleton("PoolManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("PoolManager")
+	return null

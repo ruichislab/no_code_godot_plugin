@@ -17,6 +17,31 @@ const SAVE_EXTENSION = ".save"
 var datos_actuales: Dictionary = {}
 var slot_actual: int = 0
 
+# Helpers JSON compatibles con varias versiones de Godot
+func _json_stringify(obj) -> String:
+	var j = JSON.new()
+	if j.has_method("stringify"):
+		return j.stringify(obj)
+	if j.has_method("print"):
+		return j.print(obj)
+	# Fallback: usar str() si no hay método conocido
+	return str(obj)
+
+func _json_parse(text):
+	var j = JSON.new()
+	var parsed = null
+	if j.has_method("parse"):
+		parsed = j.parse(text)
+	elif j.has_method("parse_string"):
+		parsed = j.parse_string(text)
+	# No hay fallback global seguro; devolver null si no se pudo parsear
+	else:
+		return null
+
+	if typeof(parsed) == TYPE_DICTIONARY:
+		return parsed
+	return parsed
+
 func _ready():
 	# Crear directorio de guardado si no existe
 	if not DirAccess.dir_exists_absolute(SAVE_DIR):
@@ -24,24 +49,28 @@ func _ready():
 	print("SaveManager: Inicializado. Directorio: ", SAVE_DIR)
 
 ## Guarda datos en el slot especificado.
-func guardar(slot: int = 0, datos: Dictionary = {}):
+func guardar(slot: int = 0, datos = null):
 	slot_actual = slot
-	
+
+	# Normalizar parámetro 'datos' (evitar mutable default)
+	if datos == null:
+		datos = {}
+
 	# Mezclar datos nuevos con actuales
 	for key in datos:
 		datos_actuales[key] = datos[key]
-	
+
 	var ruta = _get_save_path(slot)
 	var archivo = FileAccess.open(ruta, FileAccess.WRITE)
-	
+
 	if archivo == null:
-		push_error("SaveManager: No se pudo abrir el archivo para guardar: ", ruta)
+		push_error("SaveManager: No se pudo abrir el archivo para guardar: %s" % ruta)
 		return false
-	
-	var json = JSON.stringify(datos_actuales, "\t")
-	archivo.store_string(json)
+
+	var json_text = _json_stringify(datos_actuales)
+	archivo.store_string(json_text)
 	archivo.close()
-	
+
 	print("SaveManager: Guardado en slot ", slot)
 	return true
 
@@ -49,27 +78,25 @@ func guardar(slot: int = 0, datos: Dictionary = {}):
 func cargar(slot: int = 0) -> Dictionary:
 	slot_actual = slot
 	var ruta = _get_save_path(slot)
-	
+
 	if not FileAccess.file_exists(ruta):
-		push_warning("SaveManager: No existe guardado en slot ", slot)
+		push_warning("SaveManager: No existe guardado en slot %d" % slot)
 		return {}
-	
+
 	var archivo = FileAccess.open(ruta, FileAccess.READ)
 	if archivo == null:
-		push_error("SaveManager: No se pudo leer el archivo: ", ruta)
+		push_error("SaveManager: No se pudo leer el archivo: %s" % ruta)
 		return {}
-	
+
 	var texto = archivo.get_as_text()
 	archivo.close()
-	
-	var json = JSON.new()
-	var error = json.parse(texto)
-	
-	if error != OK:
-		push_error("SaveManager: Error al parsear JSON en slot ", slot)
+
+	var datos = _json_parse(texto)
+	if not (datos is Dictionary):
+		push_error("SaveManager: Error al parsear JSON en slot %d" % slot)
 		return {}
-	
-	datos_actuales = json.data
+
+	datos_actuales = datos
 	print("SaveManager: Cargado desde slot ", slot)
 	return datos_actuales
 
@@ -81,8 +108,31 @@ func existe_guardado(slot: int = 0) -> bool:
 func borrar_guardado(slot: int = 0):
 	var ruta = _get_save_path(slot)
 	if FileAccess.file_exists(ruta):
-		DirAccess.remove_absolute(ruta)
-		print("SaveManager: Borrado slot ", slot)
+		# Intentar eliminar usando DirAccess si está disponible
+		var removed = ERR_UNAVAILABLE
+		var rel = ruta
+		if ruta.begins_with("user://"):
+			rel = ruta.replace("user://", "")
+			var dir = DirAccess.open("user://")
+			if dir:
+				# intentar remove_file (API puede variar entre versiones)
+				if dir.has_method("remove_file"):
+					removed = dir.remove_file(rel)
+				elif dir.has_method("remove"):
+					removed = dir.remove(rel)
+
+		# Fallback: truncar el archivo para evitar errores si no se puede borrar
+		if removed != OK:
+			var f = FileAccess.open(ruta, FileAccess.WRITE)
+			if f:
+				f.store_string("")
+				f.close()
+				removed = OK
+
+		if removed == OK:
+			print("SaveManager: Borrado slot %d" % slot)
+		else:
+			push_error("SaveManager: No se pudo borrar el guardado: %s" % ruta)
 
 ## Obtiene un valor guardado.
 func get_valor(key: String, default = null):

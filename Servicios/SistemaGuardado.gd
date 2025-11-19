@@ -1,6 +1,42 @@
 # Archivo: Servicios/SistemaGuardado.gd
 extends Node
 
+# Helpers JSON compatibles con varias versiones de Godot
+func _json_stringify(obj) -> String:
+	var j = JSON.new()
+	if j.has_method("stringify"):
+		return j.stringify(obj)
+	if j.has_method("print"):
+		return j.print(obj)
+	return str(obj)
+
+func _json_parse(text):
+	var j = JSON.new()
+	if j.has_method("parse"):
+		var res = j.parse(text)
+		return res
+	if j.has_method("parse_string"):
+		return j.parse_string(text)
+	return null
+
+# Helpers de tiempo compatibles
+func _now_unix() -> int:
+	if typeof(OS) != TYPE_NIL:
+		if OS.has_method("get_unix_time"):
+			return int(OS.call("get_unix_time"))
+		if OS.has_method("get_unix_time_from_system"):
+			return int(OS.call("get_unix_time_from_system"))
+	# Fallback: 0 si no disponible
+	return 0
+
+func _now_ticks_msec() -> int:
+	if typeof(OS) != TYPE_NIL:
+		if OS.has_method("get_ticks_msec"):
+			return int(OS.call("get_ticks_msec"))
+		if OS.has_method("get_ticks_usec"):
+			return int(OS.call("get_ticks_usec") / 1000)
+	return 0
+
 # --- CONFIGURACIÓN ---
 # --- CONFIGURACIÓN ---
 const PREFIJO_ARCHIVO: String = "user://savegame_"
@@ -16,8 +52,9 @@ func guardar_juego(slot: int = 1):
 	
 	var datos_guardado: Dictionary = {
 		"version": "1.0",
-		"fecha": Time.get_datetime_string_from_system(),
-		"tiempo_juego": Time.get_ticks_msec() / 1000.0, # Simple, idealmente usar un TimeManager acumulativo
+		# Guardar timestamp unix (más portable)
+		"fecha": _now_unix(),
+		"tiempo_juego": _now_ticks_msec() / 1000.0, # Simple, idealmente usar un TimeManager acumulativo
 		"datos_jugador": {},
 		"datos_inventario": {}
 	}
@@ -45,7 +82,7 @@ func guardar_juego(slot: int = 1):
 	var ruta = obtener_ruta(slot)
 	var archivo = FileAccess.open(ruta, FileAccess.WRITE)
 	if archivo:
-		var json_string = JSON.stringify(datos_guardado)
+		var json_string = _json_stringify(datos_guardado)
 		archivo.store_string(json_string)
 		archivo.close()
 		print("Juego guardado exitosamente en: " + ruta)
@@ -66,15 +103,12 @@ func cargar_juego(slot: int = 1) -> bool:
 	var json_string = archivo.get_as_text()
 	archivo.close()
 	
-	var json = JSON.new()
-	var error = json.parse(json_string)
-	
-	if error == OK:
-		var datos_guardado = json.data
+	var datos_guardado = _json_parse(json_string)
+	if typeof(datos_guardado) == TYPE_DICTIONARY or datos_guardado is Dictionary:
 		_aplicar_datos_cargados(datos_guardado)
 		return true
 	else:
-		push_error("JSON Parse Error: ", json.get_error_message())
+		push_error("JSON Parse Error: datos inválidos o malformados")
 		return false
 
 func _aplicar_datos_cargados(datos: Dictionary):
@@ -109,19 +143,41 @@ func existe_partida(slot: int = 1) -> bool:
 func borrar_partida(slot: int = 1):
 	var ruta = obtener_ruta(slot)
 	if FileAccess.file_exists(ruta):
-		DirAccess.remove_absolute(ruta)
-		print("Partida borrada: Slot %d" % slot)
+		var removed = ERR_UNAVAILABLE
+		var rel = ruta
+		if ruta.begins_with("user://"):
+			rel = ruta.replace("user://", "")
+			var dir = DirAccess.open("user://")
+			if dir:
+				if dir.has_method("remove_file"):
+					removed = dir.remove_file(rel)
+				elif dir.has_method("remove"):
+					removed = dir.remove(rel)
+
+		if removed != OK:
+			var f = FileAccess.open(ruta, FileAccess.WRITE)
+			if f:
+				f.store_string("")
+				f.close()
+				removed = OK
+
+		if removed == OK:
+			print("Partida borrada: Slot %d" % slot)
+		else:
+			push_error("No se pudo borrar la partida: %s" % ruta)
 
 func obtener_metadata(slot: int) -> Dictionary:
 	if not existe_partida(slot):
 		return {}
-		
-	var archivo = FileAccess.open(obtener_ruta(slot), FileAccess.READ)
-	if not archivo: return {}
 	
-	var json = JSON.new()
-	if json.parse(archivo.get_as_text()) == OK:
-		var datos = json.data
+	var archivo = FileAccess.open(obtener_ruta(slot), FileAccess.READ)
+	if not archivo:
+		return {}
+
+	var texto = archivo.get_as_text()
+	archivo.close()
+	var datos = _json_parse(texto)
+	if datos is Dictionary:
 		return {
 			"fecha": datos.get("fecha", "???"),
 			"version": datos.get("version", "1.0")

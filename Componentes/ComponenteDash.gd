@@ -31,6 +31,15 @@ var puede_hacer_dash: bool = true
 var padre: CharacterBody2D
 var hurtbox: Area2D
 
+func _get_sound_manager():
+	if Engine.has_singleton("SoundManager"):
+		return Engine.get_singleton("SoundManager")
+	if Engine.has_singleton("AudioManager"):
+		return Engine.get_singleton("AudioManager")
+	if is_inside_tree():
+		return get_tree().root.get_node_or_null("SoundManager") or get_tree().root.get_node_or_null("AudioManager")
+	return null
+
 func _ready():
 	padre = get_parent() as CharacterBody2D
 	if not padre:
@@ -52,8 +61,12 @@ func _process(delta):
 func iniciar_dash():
 	puede_hacer_dash = false
 	
-	if SoundManager:
-		SoundManager.play_sfx(sonido_dash)
+	var sm = _get_sound_manager()
+	if sm:
+		if sm.has_method("play_sfx"):
+			sm.play_sfx(sonido_dash)
+		elif sm.has_method("reproducir_sonido") and typeof(sonido_dash) == TYPE_OBJECT:
+			sm.reproducir_sonido(sonido_dash)
 		
 	# Dirección del dash
 	var dir = padre.velocity.normalized()

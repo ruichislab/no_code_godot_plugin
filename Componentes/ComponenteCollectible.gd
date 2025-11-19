@@ -31,16 +31,30 @@ func _on_body_entered(body):
 
 func recoger():
 	# 1. Modificar Variable
-	if VariableManager:
-		VariableManager.sumar_valor(nombre_variable, valor_a_sumar)
-		print("Variable %s: %s" % [nombre_variable, VariableManager.obtener_valor(nombre_variable)])
+	# 1. Modificar Variable
+	var vm = _get_variable_manager()
+	if vm:
+		vm.sumar_valor(nombre_variable, valor_a_sumar)
+		print("Variable %s: %s" % [nombre_variable, vm.obtener_valor(nombre_variable)])
 	
 	# 2. Sonido
-	if SoundManager:
-		SoundManager.play_sfx(sonido_recoger)
+	var sm = _get_sound_manager()
+	if sm:
+		# sm.play_sfx(sonido_recoger)
+		pass
 		
 	# 3. Efecto visual (Opcional: spawnear partículas aquí)
 	
 	# 4. Eliminar
 	if eliminar_al_recoger:
 		queue_free()
+
+func _get_variable_manager() -> Node:
+	if Engine.has_singleton("VariableManager"): return Engine.get_singleton("VariableManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("VariableManager")
+	return null
+
+func _get_sound_manager() -> Node:
+	if Engine.has_singleton("SoundManager"): return Engine.get_singleton("SoundManager")
+	if is_inside_tree(): return get_tree().root.get_node_or_null("SoundManager")
+	return null

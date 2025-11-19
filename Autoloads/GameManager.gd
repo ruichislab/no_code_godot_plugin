@@ -17,7 +17,7 @@ signal juego_reanudado
 signal evento_global(nombre: String, datos: Dictionary)
 
 var escena_actual: String = ""
-var juego_pausado: bool = false
+var esta_pausado: bool = false
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS # No se pausa
@@ -32,14 +32,14 @@ func cambiar_escena(ruta: String):
 ## Pausa el juego.
 func pausar():
 	get_tree().paused = true
-	juego_pausado = true
+	esta_pausado = true
 	emit_signal("juego_pausado")
 	print("GameManager: Juego pausado")
 
 ## Reanuda el juego.
 func reanudar():
 	get_tree().paused = false
-	juego_pausado = false
+	esta_pausado = false
 	emit_signal("juego_reanudado")
 	print("GameManager: Juego reanudado")
 

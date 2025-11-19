@@ -30,7 +30,10 @@ func actualizar_texto():
 	if eventos.size() > 0:
 		var evento = eventos[0]
 		if evento is InputEventKey:
-			tecla = OS.get_keycode_string(evento.physical_keycode)
+			if typeof(OS) != TYPE_NIL and OS.has_method("get_keycode_string"):
+				tecla = OS.call("get_keycode_string", evento.physical_keycode)
+			else:
+				tecla = str(evento.physical_keycode)
 		elif evento is InputEventMouseButton:
 			tecla = "Mouse " + str(evento.button_index)
 		elif evento is InputEventJoypadButton:
