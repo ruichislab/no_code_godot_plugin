@@ -609,9 +609,6 @@ res://
 ## 📞 Soporte
 
 - 📧 **Email:** support@ruichislab.com
-- 💬 **Discord:** [Únete a nuestra comunidad](https://discord.gg/ruichislab)
-- 🐛 **Issues:** [GitHub Issues](https://github.com/ruichislab/no-code-godot/issues)
-- 📖 **Docs:** [Documentación Completa](https://docs.ruichislab.com)
 
 ---
 
