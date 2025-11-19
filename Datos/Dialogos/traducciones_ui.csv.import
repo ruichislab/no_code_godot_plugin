@@ -1,0 +1,17 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://c66h6ch4obhyv"
+
+[deps]
+
+files=["res://addons/no_code_godot_plugin/Datos/Dialogos/traducciones_ui.es.translation", "res://addons/no_code_godot_plugin/Datos/Dialogos/traducciones_ui.en.translation", "res://addons/no_code_godot_plugin/Datos/Dialogos/traducciones_ui.it.translation", "res://addons/no_code_godot_plugin/Datos/Dialogos/traducciones_ui.fr.translation"]
+
+source_file="res://addons/no_code_godot_plugin/Datos/Dialogos/traducciones_ui.csv"
+dest_files=["res://addons/no_code_godot_plugin/Datos/Dialogos/traducciones_ui.es.translation", "res://addons/no_code_godot_plugin/Datos/Dialogos/traducciones_ui.en.translation", "res://addons/no_code_godot_plugin/Datos/Dialogos/traducciones_ui.it.translation", "res://addons/no_code_godot_plugin/Datos/Dialogos/traducciones_ui.fr.translation"]
+
+[params]
+
+compress=true
+delimiter=0

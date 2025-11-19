@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecursoConsumible" load_steps=2 format=3 uid="uid://pocionvida001"]
+
+[ext_resource type="Script" path="res://Datos/Inventario/RecursoConsumible.gd" id="1_consumible"]
+
+[resource]
+script = ExtResource("1_consumible")
+salud_recuperada = 25.0
+mana_recuperado = 0.0
+id_unico = "pocion_vida_pequena"
+nombre = "Poción de Vida Pequeña"
+descripcion = "Recupera 25 puntos de salud."
+ruta_icono = "res://Recursos/KenneyAssets/2D/RPG Urban Pack/Tiles/tile_0128.png"
+es_apilable = true
+cantidad_maxima = 10
+tipo_objeto = "consumible"
+es_consumible = true

@@ -1,0 +1,88 @@
+keys,es,en,it,fr
+UI_INVENTARIO,Inventario,Inventory,Inventario,Inventaire
+UI_MAPA,Mapa,Map,Mappa,Carte
+UI_EQUIPO,Equipo,Equipment,Equipaggiamento,Équipement
+UI_MISIONES,Misiones,Quests,Missioni,Quêtes
+UI_HABILIDADES,Habilidades,Skills,Abilità,Compétences
+UI_ESTADISTICAS,Estadísticas,Stats,Statistiche,Statistiques
+UI_SISTEMA,Sistema,System,Sistema,Système
+UI_OPCIONES,Opciones,Options,Opzioni,Options
+UI_SALIR,Salir,Quit,Esci,Quitter
+
+STAT_SALUD,Salud,Health,Salute,Santé
+STAT_ENERGIA,Energía,Energy,Energia,Énergie
+STAT_MANA,Maná,Mana,Mana,Mana
+STAT_NIVEL,Nivel,Level,Livello,Niveau
+STAT_EXP,EXP,EXP,ESP,EXP
+STAT_EXP_SIGUIENTE,EXP Siguiente,Next EXP,ESP Prossima,EXP Suivant
+
+STAT_FUERZA,Fuerza,Strength,Forza,Force
+STAT_MAGIA,Magia,Magic,Magia,Magie
+STAT_DEFENSA,Defensa,Defense,Difesa,Défense
+STAT_AGILIDAD,Agilidad,Agility,Agilità,Agilité
+STAT_RESISTENCIA,Resistencia,Resistance,Resistenza,Résistance
+STAT_SUERTE,Suerte,Luck,Fortuna,Chance
+STAT_ATAQUE,Ataque,Attack,Attacco,Attaque
+STAT_DEFENSA_FISICA,Def. Física,Phys. Defense,Dif. Fisica,Déf. Physique
+STAT_DEFENSA_MAGICA,Def. Mágica,Mag. Defense,Dif. Magica,Déf. Magique
+
+EQUIP_ARMA,Arma,Weapon,Arma,Arme
+EQUIP_ARMADURA,Armadura,Armor,Armatura,Armure
+EQUIP_ESCUDO,Escudo,Shield,Scudo,Bouclier
+EQUIP_CASCO,Casco,Helmet,Elmo,Casque
+EQUIP_BOTAS,Botas,Boots,Stivali,Bottes
+EQUIP_ACCESORIO,Accesorio,Accessory,Accessorio,Accessoire
+
+ITEM_USAR,Usar,Use,Usa,Utiliser
+ITEM_SOLTAR,Soltar,Drop,Getta,Jeter
+ITEM_EQUIPAR,Equipar,Equip,Equipaggia,Équiper
+ITEM_DESEQUIPAR,Desequipar,Unequip,Rimuovi,Déséquiper
+ITEM_CANTIDAD,Cantidad,Quantity,Quantità,Quantité
+ITEM_OBJETOS,Objetos,Items,Oggetti,Objets
+ITEM_OBJETOS_CLAVE,Objetos Clave,Key Items,Oggetti Chiave,Objets Clés
+
+UI_SI,Sí,Yes,Sì,Oui
+UI_NO,No,No,No,Non
+UI_ACEPTAR,Aceptar,Accept,Accetta,Accepter
+UI_CANCELAR,Cancelar,Cancel,Annulla,Annuler
+UI_ATRAS,Atrás,Back,Indietro,Retour
+UI_CERRAR,Cerrar,Close,Chiudi,Fermer
+
+TITLE_NUEVA_PARTIDA,Nueva Partida,New Game,Nuova Partita,Nouvelle Partie
+TITLE_CARGAR_PARTIDA,Cargar Partida,Load Game,Carica Partita,Charger une Partie
+TITLE_AJUSTES,Ajustes,Settings,Impostazioni,Options
+TITLE_SALIR_ESCRITORIO,Salir al Escritorio,Quit to Desktop,Esci al Desktop,Quitter au Bureau
+
+SETTINGS_VOLUMEN,Volumen,Volume,Volume,Volume
+SETTINGS_MUSICA,Música,Music,Musica,Musique
+SETTINGS_SFX,Efectos (SFX),Sound Effects (SFX),Effetti (SFX),Effets (SFX)
+SETTINGS_IDIOMA,Idioma,Language,Lingua,Langue
+SETTINGS_PANTALLA_COMPLETA,Pantalla Completa,Fullscreen,Schermo Intero,Plein Écran
+SETTINGS_RESOLUCION,Resolución,Resolution,Risoluzione,Résolution
+SETTINGS_CONTROLES,Controles,Controls,Controlli,Contrôles
+SETTINGS_RESTAURAR,Restaurar Defectos,Restore Defaults,Ripristina,Restaurer
+
+PROMPT_GUARDAR_PREGUNTA,¿Guardar partida?,Save game?,Salvare la partita?,Sauvegarder la partie ?
+PROMPT_SOBREESCRIBIR,¿Sobreescribir datos?,Overwrite save data?,Sovrascrivere i dati?,Écraser les données ?
+PROMPT_GUARDADO_EXITO,Partida guardada.,Game saved.,Partita salvata.,Partie sauvegardée.
+PROMPT_CARGANDO,Cargando...,Loading...,Caricamento...,Chargement...
+PROMPT_PARTIDA_VACIA,Partida vacía,Empty Slot,Slot Vuoto,Emplacement Vide
+PROMPT_DATOS_CORRUPTOS,Datos corruptos,Corrupted Data,Dati Corrotti,Données Corrompues
+
+SHOP_COMPRAR,Comprar,Buy,Compra,Acheter
+SHOP_VENDER,Vender,Sell,Vendi,Vendre
+SHOP_SALIR,Salir,Leave,Esci,Partir
+SHOP_PRECIO,Precio,Price,Prezzo,Prix
+SHOP_DINERO_JUGADOR,Tu Dinero,Your Money,Tuo Denaro,Votre Argent
+SHOP_PREGUNTA_COMPRA,¿Cuántos quieres comprar?,How many to buy?,Quanti ne vuoi comprare?,Combien acheter ?
+SHOP_PREGUNTA_VENTA,¿Cuántos quieres vender?,How many to sell?,Quanti ne vuoi vendere?,Combien vendre ?
+SHOP_NO_DINERO,No tienes suficiente dinero.,Not enough money.,Non hai abbastanza soldi.,Pas assez d'argent.
+
+STATUS_VENENO,Veneno,Poison,Veleno,Poison
+STATUS_PARALISIS,Parálisis,Paralysis,Paralisi,Paralysie
+STATUS_DORMIDO,Dormido,Sleep,Sonno,Endormi
+STATUS_QUEMADURA,Quemadura,Burn,Scottatura,Brûlure
+STATUS_SILENCIO,Silencio,Silence,Silenzio,Silence
+STATUS_CONFUSION,Confusión,Confusion,Confusione,Confusion
+STATUS_BENDECIDO,Bendecido,Blessed,Benedetto,Béni
+STATUS_MALDITO,Maldito,Cursed,Maledetto,Maudit
