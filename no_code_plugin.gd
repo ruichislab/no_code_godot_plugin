@@ -16,11 +16,10 @@ func _enter_tree() -> void:
 	_registrar_autoloads()
 	
 	# 3. REGISTRO DE NODOS
-	# Usamos una estructura jerárquica limpia: RuichisLab/Categoria/Nodo
 	
 	var icon_default = EditorInterface.get_base_control().get_theme_icon("Node", "EditorIcons")
 	var icon_area = EditorInterface.get_base_control().get_theme_icon("Area2D", "EditorIcons")
-	# var icon_deck = preload("res://addons/no_code_godot_plugin/deck_icon.png") # Si existe
+	# var icon_anim = EditorInterface.get_base_control().get_theme_icon("AnimationPlayer", "EditorIcons")
 
 	# LOGICA
 	add_custom_type_safe("RuichisLab/Logic/Trigger", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteTrigger.gd"), icon_area)
@@ -38,6 +37,7 @@ func _enter_tree() -> void:
 	add_custom_type_safe("RuichisLab/Logic/SavePoint", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteSavePoint.gd"), icon_area)
 	add_custom_type_safe("RuichisLab/Logic/Shop", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteShop.gd"), icon_area)
 	add_custom_type_safe("RuichisLab/Logic/Timer", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteTimer.gd"), icon_default)
+	add_custom_type_safe("RuichisLab/Logic/SimpleAnimator", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteSimpleAnimator.gd"), icon_default)
 
 	# COMBATE
 	add_custom_type_safe("RuichisLab/Combat/Hurtbox", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteHurtbox.gd"), icon_area)
@@ -179,7 +179,7 @@ func _remove_current_types() -> void:
 		"RuichisLab/Logic/Trigger", "RuichisLab/Logic/InputListener", "RuichisLab/Logic/GameOverListener", "RuichisLab/Logic/PauseListener",
 		"RuichisLab/Logic/Interaccion", "RuichisLab/Logic/SimpleDialog", "RuichisLab/Logic/AdvancedDialog", "RuichisLab/Logic/QuestGiver",
 		"RuichisLab/Logic/QuestObjective", "RuichisLab/Logic/Key", "RuichisLab/Logic/Door", "RuichisLab/Logic/ItemChest",
-		"RuichisLab/Logic/SavePoint", "RuichisLab/Logic/Shop", "RuichisLab/Logic/Timer",
+		"RuichisLab/Logic/SavePoint", "RuichisLab/Logic/Shop", "RuichisLab/Logic/Timer", "RuichisLab/Logic/SimpleAnimator",
 		"RuichisLab/Combat/Hurtbox", "RuichisLab/Combat/Hitbox", "RuichisLab/Combat/LootDropper", "RuichisLab/Combat/Destructible",
 		"RuichisLab/Combat/MeleeWeapon", "RuichisLab/Combat/Dash", "RuichisLab/Combat/Knockback", "RuichisLab/Combat/Efectos",
 		"RuichisLab/Combat/HitFlash", "RuichisLab/Combat/Trail", "RuichisLab/Combat/OnDeath", "RuichisLab/Combat/Proyectil",
