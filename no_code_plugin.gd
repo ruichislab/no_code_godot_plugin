@@ -137,41 +137,48 @@ func _exit_tree() -> void:
 	_remover_autoloads()
 
 func _registrar_autoloads() -> void:
-	add_autoload_singleton("GameManager", "res://addons/no_code_godot_plugin/Autoloads/GameManager.gd")
-	add_autoload_singleton("AudioManager", "res://addons/no_code_godot_plugin/Autoloads/AudioManager.gd")
-	add_autoload_singleton("SaveManager", "res://addons/no_code_godot_plugin/Autoloads/SaveManager.gd")
-	add_autoload_singleton("PoolManager", "res://addons/no_code_godot_plugin/Autoloads/PoolManager.gd")
-	add_autoload_singleton("DialogueManager", "res://addons/no_code_godot_plugin/Servicios/DialogueManager.gd")
-	add_autoload_singleton("InventarioGlobal", "res://addons/no_code_godot_plugin/Datos/Inventario/InventarioGlobal.gd")
-	add_autoload_singleton("DebugConsole", "res://addons/no_code_godot_plugin/Servicios/DebugConsole.gd")
-	add_autoload_singleton("GestorMisiones", "res://addons/no_code_godot_plugin/Servicios/GestorMisiones.gd")
-	add_autoload_singleton("FloatingTextManager", "res://addons/no_code_godot_plugin/Servicios/FloatingTextManager.gd")
-	add_autoload_singleton("UIManager", "res://addons/no_code_godot_plugin/Servicios/UIManager.gd")
-	add_autoload_singleton("EventBus", "res://addons/no_code_godot_plugin/Servicios/EventBus.gd")
+	_safe_add_autoload("GameManager", "res://addons/no_code_godot_plugin/Autoloads/GameManager.gd")
+	_safe_add_autoload("AudioManager", "res://addons/no_code_godot_plugin/Autoloads/AudioManager.gd")
+	_safe_add_autoload("SaveManager", "res://addons/no_code_godot_plugin/Autoloads/SaveManager.gd")
+	_safe_add_autoload("PoolManager", "res://addons/no_code_godot_plugin/Autoloads/PoolManager.gd")
+	_safe_add_autoload("DialogueManager", "res://addons/no_code_godot_plugin/Servicios/DialogueManager.gd")
+	_safe_add_autoload("InventarioGlobal", "res://addons/no_code_godot_plugin/Datos/Inventario/InventarioGlobal.gd")
+	_safe_add_autoload("DebugConsole", "res://addons/no_code_godot_plugin/Servicios/DebugConsole.gd")
+	_safe_add_autoload("GestorMisiones", "res://addons/no_code_godot_plugin/Servicios/GestorMisiones.gd")
+	_safe_add_autoload("FloatingTextManager", "res://addons/no_code_godot_plugin/Servicios/FloatingTextManager.gd")
+	_safe_add_autoload("UIManager", "res://addons/no_code_godot_plugin/Servicios/UIManager.gd")
+	_safe_add_autoload("EventBus", "res://addons/no_code_godot_plugin/Servicios/EventBus.gd")
 
 func _remover_autoloads() -> void:
-	remove_autoload_singleton("GameManager")
-	remove_autoload_singleton("AudioManager")
-	remove_autoload_singleton("SaveManager")
-	remove_autoload_singleton("PoolManager")
-	remove_autoload_singleton("DialogueManager")
-	remove_autoload_singleton("InventarioGlobal")
-	remove_autoload_singleton("DebugConsole")
-	remove_autoload_singleton("GestorMisiones")
-	remove_autoload_singleton("FloatingTextManager")
-	remove_autoload_singleton("UIManager")
-	remove_autoload_singleton("EventBus")
+	_safe_remove_autoload("GameManager")
+	_safe_remove_autoload("AudioManager")
+	_safe_remove_autoload("SaveManager")
+	_safe_remove_autoload("PoolManager")
+	_safe_remove_autoload("DialogueManager")
+	_safe_remove_autoload("InventarioGlobal")
+	_safe_remove_autoload("DebugConsole")
+	_safe_remove_autoload("GestorMisiones")
+	_safe_remove_autoload("FloatingTextManager")
+	_safe_remove_autoload("UIManager")
+	_safe_remove_autoload("EventBus")
 
-# Helpers seguros
-func add_autoload_singleton(name: String, path: String) -> void:
+# Helper seguro para añadir Autoloads sin recursión
+func _safe_add_autoload(name: String, path: String) -> void:
 	if Engine.has_singleton(name): return
-	add_autoload_singleton(name, path) # Recursión si estuviera en Engine, pero usamos la funcion nativa del plugin si existe
-	# Nota: EditorPlugin.add_autoload_singleton existe.
+	# Llamamos al método nativo si existe
+	if has_method("add_autoload_singleton"):
+		self.call("add_autoload_singleton", name, path)
 
-func remove_autoload_singleton(name: String) -> void:
-	if Engine.has_singleton(name):
-		# remove_autoload_singleton(name) # Comentado para evitar remover singletons del proyecto usuario
-		pass
+# Helper seguro para remover Autoloads
+func _safe_remove_autoload(name: String) -> void:
+	# Eliminamos solo si existe, para no ensuciar logs
+	# Nota: remove_autoload_singleton remueve de ProjectSettings, no solo de Engine.
+	# Sin embargo, para respetar configuraciones de usuario, a veces es mejor no borrar.
+	# Si queremos ser "profesionales", debemos limpiar lo que creamos.
+	# Verificamos si existe en ProjectSettings antes de intentar borrar
+	if ProjectSettings.has_setting("autoload/" + name):
+		if has_method("remove_autoload_singleton"):
+			self.call("remove_autoload_singleton", name)
 
 func _remove_current_types() -> void:
 	# Limpiar todos los tipos registrados por este plugin

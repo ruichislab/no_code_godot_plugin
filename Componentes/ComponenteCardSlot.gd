@@ -1,26 +1,67 @@
-class_name ComponenteCardSlot
+# Archivo: addons/no_code_godot_plugin/Componentes/ComponenteCardSlot.gd
+## Contenedor que acepta cartas arrastradas (Drop Zone).
+##
+## **Uso:** Slots de equipo, zonas de juego, cementerio.
+## **Requisito:** Control (PanelContainer, etc.).
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_CardSlot
 extends PanelContainer
-const _tool_context = "RuichisLab/Nodos"
 
-signal carta_depositada(carta)
+# --- SEÑALES ---
+signal carta_recibida(carta: RL_Card)
+signal carta_removida(carta: RL_Card)
 
-## Filtro opcional por ID de carta o tipo.
-@export var filtro_id: String = ""
+# --- CONFIGURACIÓN ---
 
-func _can_drop_data(_at_position, data):
-	# El sistema de drag&drop nativo de Godot usa esto.
-	# ComponenteCard debe devolver 'self' o un diccionario en _get_drag_data.
-	if data is Node and data.has_method("get_card_data"):
-		if filtro_id != "" and data.get_card_data().id != filtro_id:
-			return false
-		return true
-	return false
+## Si no está vacío, solo acepta cartas con este tipo (string en ResourceCardData.tipo).
+@export var filtro_tipo: String = ""
 
-func _drop_data(_at_position, data):
-	if data is Node:
-		# Reparentar la carta a este slot
-		var old_parent = data.get_parent()
-		old_parent.remove_child(data)
-		add_child(data)
-		data.position = Vector2.ZERO # Centrar
-		emit_signal("carta_depositada", data)
+## Número máximo de cartas en este slot.
+@export var capacidad_maxima: int = 1
+
+func _ready() -> void:
+	# Asegurar que los hijos no bloqueen el drop
+	mouse_filter = Control.MOUSE_FILTER_STOP
+
+func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
+	# Verificar formato de datos
+	if typeof(data) != TYPE_DICTIONARY or not data.has("tipo") or data.tipo != "RL_CARD":
+		return false
+
+	var carta = data.referencia as RL_Card
+	var info = data.data as ResourceCardData
+
+	# Verificar Capacidad
+	if get_child_count() >= capacidad_maxima:
+		return false
+
+	# Verificar Filtro
+	if filtro_tipo != "" and info and info.tipo != filtro_tipo:
+		return false
+
+	return true
+
+func _drop_data(_at_position: Vector2, data: Variant) -> void:
+	var carta = data.referencia as RL_Card
+	if not carta: return
+
+	# Lógica de transferencia
+	var padre_anterior = carta.get_parent()
+	if padre_anterior:
+		padre_anterior.remove_child(carta)
+
+	add_child(carta)
+
+	# Resetear transformaciones visuales del drag
+	carta.position = Vector2.ZERO
+	carta.size = size # Ajustar al slot si se desea
+
+	emit_signal("carta_recibida", carta)
+
+	# Si la carta tenía señal, reconectarla o notificar
+	# if carta.has_signal("carta_jugada"): ...
+
+func remover_carta(carta: RL_Card) -> void:
+	if carta.get_parent() == self:
+		remove_child(carta)
+		emit_signal("carta_removida", carta)

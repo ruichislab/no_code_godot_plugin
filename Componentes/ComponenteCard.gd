@@ -1,103 +1,137 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponenteCard.gd
-## Carta interactiva para juegos de cartas.
+## Carta interactiva con soporte Drag & Drop nativo de Godot.
 ##
-## **Uso:** Añade este componente para crear cartas jugables.
-## Incluye animaciones de hover, drag y drop.
-##
-## **Casos de uso:**
-## - Juegos de cartas coleccionables
-## - Deck builders
-## - Solitario
-## - Poker
-##
-## **Requisito:** Debe heredar de Control.
-class_name ComponenteCard
+## **Uso:** Representa una carta visual. Se puede arrastrar a un `RL_CardSlot` o `RL_PlayArea`.
+## **Requisito:** Debe ser hijo de un Control (idealmente `RL_Hand`).
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_Card
 extends Control
-const _tool_context = "RuichisLab/Nodos"
 
-signal carta_jugada(carta)
-signal carta_seleccionada(carta)
+# --- SEÑALES ---
+signal carta_jugada(carta: RL_Card)
+signal carta_seleccionada(carta: RL_Card)
+signal drag_iniciado(carta: RL_Card)
+signal drag_terminado(carta: RL_Card)
 
+# --- CONFIGURACIÓN ---
 @export_group("Datos")
-@export var data_carta: ResourceCardData
-# Propiedades legacy para compatibilidad, se sobrescriben si hay data_carta
-@export var id_carta: String = "carta_base"
-@export var coste: int = 1
-@export var valor: int = 5
+@export var data_carta: ResourceCardData:
+	set(val):
+		data_carta = val
+		if is_inside_tree(): _actualizar_visual()
 
 @export_group("Visuales")
 @export var textura_frente: Texture2D
 @export var textura_dorso: Texture2D
-@export var es_visible: bool = true:
+@export var mostrar_dorso: bool = false:
 	set(val):
-		es_visible = val
-		actualizar_visual()
+		mostrar_dorso = val
+		_actualizar_visual()
 
-var texture_rect: TextureRect
-var dragging: bool = false
-var drag_offset: Vector2
-var posicion_original: Vector2
+# --- NODOS INTERNOS (Se crean o buscan automáticamente) ---
+var _texture_rect: TextureRect
+var _label_coste: Label
+var _label_nombre: Label
+var _label_desc: Label
 
-func _ready():
-	if get_child_count() == 0:
-		texture_rect = TextureRect.new()
-		texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		texture_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-		add_child(texture_rect)
-		texture_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE 
-	else:
-		for child in get_children():
-			if child is TextureRect:
-				texture_rect = child
-				break
+var _origen_padre: Node
+var _posicion_original: Vector2
+
+func _ready() -> void:
+	custom_minimum_size = Vector2(150, 220) # Tamaño por defecto
 	
-	if data_carta:
-		configurar(data_carta)
-	else:
-		actualizar_visual()
-	
-	# Usaremos el sistema nativo de Godot _get_drag_data si es posible,
-	# pero mantenemos gui_input para clicks simples o lógica custom si se prefiere.
-	# Para drag nativo, Control debe tener mouse_filter en STOP o PASS.
+	# Configurar TextureRect
+	_texture_rect = get_node_or_null("Fondo")
+	if not _texture_rect:
+		_texture_rect = TextureRect.new()
+		_texture_rect.name = "Fondo"
+		_texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_texture_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_texture_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_texture_rect)
+		move_child(_texture_rect, 0)
 
-func configurar(data: ResourceCardData):
+	# Configurar Labels (Opcional, si el usuario quiere texto dinámico)
+	# Se pueden añadir manualmente en la escena y el script los usará si tienen nombres específicos
+	_label_coste = get_node_or_null("Coste")
+	_label_nombre = get_node_or_null("Nombre")
+	_label_desc = get_node_or_null("Descripcion")
+	
+	_actualizar_visual()
+
+func configurar(data: ResourceCardData) -> void:
 	data_carta = data
-	id_carta = data.id
-	coste = data.coste
-	if data.icono:
-		textura_frente = data.icono
-	actualizar_visual()
+	_actualizar_visual()
 
-func actualizar_visual():
-	if not texture_rect: return
-	if es_visible:
-		texture_rect.texture = textura_frente
-	else:
-		texture_rect.texture = textura_dorso
+func _actualizar_visual() -> void:
+	if not is_inside_tree(): return
 
-func get_card_data() -> ResourceCardData:
-	return data_carta
+	var tex = textura_frente
+	if mostrar_dorso:
+		tex = textura_dorso
+	elif data_carta and data_carta.icono:
+		tex = data_carta.icono
 
-# --- SISTEMA NATIVO DE DRAG & DROP ---
-func _get_drag_data(at_position):
-	# Crear preview visual
-	var preview = TextureRect.new()
-	preview.texture = textura_frente if es_visible else textura_dorso
-	preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	preview.size = size
-	preview.modulate.a = 0.8
+	if _texture_rect:
+		_texture_rect.texture = tex
+
+	if data_carta:
+		if _label_coste: _label_coste.text = str(data_carta.coste)
+		if _label_nombre: _label_nombre.text = data_carta.nombre
+		if _label_desc: _label_desc.text = data_carta.descripcion
+
+# --- DRAG & DROP NATIVO ---
+
+func _get_drag_data(at_position: Vector2) -> Variant:
+	if mostrar_dorso: return null # No arrastrar si está boca abajo
+
+	_origen_padre = get_parent()
+	_posicion_original = position
 	
-	var c = Control.new()
-	c.add_child(preview)
-	preview.position = -at_position # Centrar bajo el mouse relativo al click
+	# Crear Preview (Fantasma)
+	var preview = Control.new()
+	var tex = TextureRect.new()
+	tex.texture = _texture_rect.texture
+	tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tex.size = size
+	tex.modulate.a = 0.8
+	# Centrar el preview en el mouse
+	tex.position = -size / 2
 	
-	set_drag_preview(c)
+	preview.add_child(tex)
+	set_drag_preview(preview)
 	
-	return self # Devolvemos la referencia a la carta misma
+	emit_signal("drag_iniciado", self)
 
-# --- SISTEMA LEGACY (Opcional, si se prefiere movimiento libre sin slots) ---
-func _gui_input(event):
-	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT:
-			if event.pressed:
-				emit_signal("carta_seleccionada", self)
+	# Devolvemos un diccionario con info útil
+	return {
+		"tipo": "RL_CARD",
+		"referencia": self,
+		"data": data_carta
+	}
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_DRAG_END:
+		emit_signal("drag_terminado", self)
+		if not is_drag_successful():
+			_regresar_a_mano()
+
+func _regresar_a_mano() -> void:
+	# Animación simple de retorno si no se jugó
+	var tween = create_tween()
+	# Nota: Si usas un Container (HBox/Grid), la posición es gestionada por el padre.
+	# Este tween es visual solo si el padre no fuerza la posición inmediatamente.
+	pass
+
+func regresar_al_deck() -> void:
+	queue_free() # O lógica de devolver al mazo
+
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		emit_signal("carta_seleccionada", self)
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings: PackedStringArray = []
+	if not data_carta:
+		warnings.append("Se recomienda asignar un ResourceCardData.")
+	return warnings

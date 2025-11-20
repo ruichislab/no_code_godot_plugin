@@ -1,64 +1,85 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponenteHand.gd
-## Mano de cartas con disposición automática.
+## Gestor visual para la mano de cartas. Organiza los hijos en arco o línea.
 ##
-## **Uso:** Añade este componente para organizar cartas en la mano del jugador.
-## Las cartas se distribuyen en arco automáticamente.
-##
-## **Casos de uso:**
-## - Mano del jugador en juegos de cartas
-## - Inventario de habilidades
-## - Selector de items
-##
-## **Requisito:** Debe heredar de Control.
-@icon("res://icon.svg")
-class_name ComponenteHand
+## **Uso:** Contenedor para instancias de `RL_Card`.
+## **Requisito:** Control (Container o Control simple).
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_Hand
 extends Control
-const _tool_context = "RuichisLab/Nodos"
 
-## Distancia entre cartas.
-@export var separacion: float = 50.0
-## Grados de rotación por carta.
-@export var curvatura: float = 10.0 
-## Altura del arco visual.
-@export var altura_arco: float = 20.0
+# --- CONFIGURACIÓN ---
 
-func _ready():
-	# Conectar señal para cuando se añaden/quitan hijos
+## Separación horizontal entre cartas.
+@export var separacion: float = 80.0
+
+## Curvatura del arco (grados máx de rotación).
+@export var angulo_maximo: float = 15.0
+
+## Desplazamiento vertical para el arco (píxeles).
+@export var altura_arco: float = 30.0
+
+## Velocidad de animación al reorganizar.
+@export var velocidad_animacion: float = 0.2
+
+# --- ESTADO ---
+var _cartas: Array[Control] = []
+
+func _ready() -> void:
+	# Escuchar cambios en la jerarquía
 	child_entered_tree.connect(_on_child_changed)
 	child_exiting_tree.connect(_on_child_changed)
+
+	# Reorganizar al cambiar tamaño
+	resized.connect(organizar_cartas)
+
 	call_deferred("organizar_cartas")
 
-func _on_child_changed(_node):
+func _on_child_changed(_node: Node) -> void:
 	call_deferred("organizar_cartas")
 
-func organizar_cartas():
-	var cartas = []
+## Recalcula posiciones y rotaciones de todas las cartas.
+func organizar_cartas() -> void:
+	_cartas.clear()
 	for child in get_children():
-		if child is Control: # Asumimos que son cartas
-			cartas.append(child)
-			
-	var total = cartas.size()
+		if child is Control and child.visible: # Solo organizar Controles visibles
+			_cartas.append(child)
+
+	var total = _cartas.size()
 	if total == 0: return
 	
 	var centro_x = size.x / 2.0
-	var inicio_x = centro_x - ((total - 1) * separacion) / 2.0
+
+	# Calcular ancho total teórico
+	var ancho_total = (total - 1) * separacion
+	var inicio_x = centro_x - (ancho_total / 2.0)
 	
 	for i in range(total):
-		var carta = cartas[i]
-		var destino_x = inicio_x + (i * separacion)
+		var carta = _cartas[i]
 		
-		# Calcular arco
-		var factor = 0.0
-		if total > 1:
-			factor = (float(i) / (total - 1)) - 0.5 # -0.5 a 0.5
+		# Si la carta está siendo arrastrada, ignorarla visualmente
+		if carta.has_method("is_dragged") and carta.is_dragged():
+			continue
 			
-		var destino_y = abs(factor) * altura_arco
-		var rotacion = factor * curvatura
+		# Posición X
+		var target_x = inicio_x + (i * separacion) - (carta.size.x / 2.0)
 		
-		# Aplicar posición (idealmente con Tween, pero directo por ahora para simplicidad)
-		carta.position = Vector2(destino_x, destino_y)
-		carta.rotation_degrees = rotacion
+		# Cálculo del arco
+		var factor = 0.0 # -1.0 (izq) a 1.0 (der)
+		if total > 1:
+			factor = (float(i) / (total - 1)) * 2.0 - 1.0
+
+		var target_y = abs(factor) * altura_arco
+		var target_rot = factor * angulo_maximo
 		
-		# Guardar posición original en la carta si tiene la propiedad
-		if "posicion_original" in carta:
-			carta.posicion_original = carta.global_position
+		# Animar
+		var tween = create_tween().set_parallel(true)
+		tween.tween_property(carta, "position", Vector2(target_x, target_y), velocidad_animacion).set_trans(Tween.TRANS_SINE)
+		tween.tween_property(carta, "rotation_degrees", target_rot, velocidad_animacion).set_trans(Tween.TRANS_SINE)
+
+		# Guardar referencia de "home" en la carta si es soportado
+		if "_posicion_original" in carta:
+			carta._posicion_original = Vector2(target_x, target_y)
+
+func agregar_carta(carta: RL_Card) -> void:
+	add_child(carta)
+	# La señal child_entered_tree disparará la reorganización
