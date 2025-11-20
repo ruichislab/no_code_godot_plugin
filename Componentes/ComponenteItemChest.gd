@@ -1,105 +1,91 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponenteItemChest.gd
-## Cofre que otorga items al abrirse.
+## Contenedor interactuable que da un item y recuerda su estado.
 ##
-## **Uso:** Añade este componente a cofres u objetos que contienen items.
-## Al interactuar, añade los items al inventario del jugador.
-##
-## **Casos de uso:**
-## - Cofres de tesoro
-## - Cajas de botín
-## - Recompensas ocultas
-## - Drops de jefes
-##
-## **Requisito:** Debe ser hijo de un Area2D.
-@icon("res://icon.svg")
-class_name ComponenteItemChest
+## **Uso:** Cofres que se quedan abiertos permanentemente.
+## **Requisito:** Debe ser hijo de un Area2D. Usar junto con `RL_Interaccion` o llamar a `interactuar()`.
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_ItemChest
 extends Area2D
-const _tool_context = "RuichisLab/Nodos"
 
+# --- CONFIGURACIÓN ---
+
+## ID único para guardar el estado de este cofre (ej: "nivel1_cofre_secreto").
 @export var id_cofre: String = "cofre_01"
-@export var item_contenido: RecursoObjeto
+
+## Recurso del item a entregar (Opcional, si usas sistema de inventario).
+@export var item_contenido: Resource
+
+## Cantidad de items a entregar.
 @export var cantidad: int = 1
+
+## Textura cuando está cerrado.
 @export var sprite_cerrado: Texture2D
+
+## Textura cuando está abierto.
 @export var sprite_abierto: Texture2D
+
+## Sonido al abrir.
 @export var sonido_abrir: String = "chest_open"
 
 var abierto: bool = false
 var sprite_node: Sprite2D
 
-func _ready():
+func _ready() -> void:
 	# Buscar o crear Sprite2D
 	sprite_node = get_node_or_null("Sprite2D")
 	if not sprite_node:
 		sprite_node = Sprite2D.new()
 		sprite_node.name = "Sprite2D"
 		add_child(sprite_node)
-		
-	# Cargar estado
-	# Cargar estado
-	var vm = _get_variable_manager()
-	if vm:
-		var val = vm.obtener_valor("chest_" + id_cofre)
-		if val != null:
-			abierto = val
-		
+
+	# Cargar estado persistente (si existe)
+	if Engine.has_singleton("VariableManager"):
+		var vm = Engine.get_singleton("VariableManager")
+		var ya_abierto = vm.call("obtener_valor", "chest_" + id_cofre)
+		if ya_abierto == true:
+			abierto = true
+
 	_actualizar_visual()
 
-# Llamado por ComponenteInteraccion o input manual
-func interactuar():
+## Método público para abrir el cofre (conectar a RL_Interaccion).
+func interactuar(_actor: Node = null) -> void:
 	if abierto: return
-	
 	abrir()
 
-func abrir():
+func abrir() -> void:
 	abierto = true
 	
 	# Guardar estado
-	# Guardar estado
-	var vm = _get_variable_manager()
-	if vm:
-		vm.set_valor("chest_" + id_cofre, true)
+	if Engine.has_singleton("VariableManager"):
+		Engine.get_singleton("VariableManager").call("set_valor", "chest_" + id_cofre, true)
 	
 	# Dar item
-	var inv = _get_inventory_manager()
-	if item_contenido and inv:
-		inv.anadir_objeto(item_contenido.id_unico, cantidad)
-		print("Obtenido: %s x%d" % [item_contenido.nombre, cantidad])
-		
-		var ftm = _get_floating_text_manager()
-		if ftm:
-			ftm.mostrar_texto("+%s" % item_contenido.nombre, global_position + Vector2(0, -40), Color.GOLD)
+	if item_contenido and Engine.has_singleton("InventarioGlobal"):
+		var inv = Engine.get_singleton("InventarioGlobal")
+		if inv.has_method("agregar_item"):
+			inv.agregar_item(item_contenido, cantidad)
+
+			# Feedback visual
+			if Engine.has_singleton("FloatingTextManager"):
+				var nombre = item_contenido.get("nombre") if "nombre" in item_contenido else "Item"
+				Engine.get_singleton("FloatingTextManager").call("mostrar_texto", "+%s x%d" % [nombre, cantidad], global_position + Vector2(0, -40), Color.GOLD)
 	
 	# Sonido
-	var sm = _get_sound_manager()
-	if sm:
-		# sm.play_sfx(sonido_abrir)
-		pass
+	if sonido_abrir != "" and Engine.has_singleton("AudioManager"):
+		Engine.get_singleton("AudioManager").call("play_sfx", sonido_abrir)
 		
 	_actualizar_visual()
 
-func _actualizar_visual():
-	if sprite_node:
-		if abierto and sprite_abierto:
-			sprite_node.texture = sprite_abierto
-		elif not abierto and sprite_cerrado:
-			sprite_node.texture = sprite_cerrado
+func _actualizar_visual() -> void:
+	if not sprite_node: return
 
-func _get_variable_manager() -> Node:
-	if Engine.has_singleton("VariableManager"): return Engine.get_singleton("VariableManager")
-	if is_inside_tree(): return get_tree().root.get_node_or_null("VariableManager")
-	return null
+	if abierto and sprite_abierto:
+		sprite_node.texture = sprite_abierto
+	elif not abierto and sprite_cerrado:
+		sprite_node.texture = sprite_cerrado
 
-func _get_inventory_manager() -> Node:
-	if Engine.has_singleton("InventarioGlobal"): return Engine.get_singleton("InventarioGlobal")
-	if is_inside_tree(): return get_tree().root.get_node_or_null("InventarioGlobal")
-	return null
-
-func _get_floating_text_manager() -> Node:
-	if Engine.has_singleton("FloatingTextManager"): return Engine.get_singleton("FloatingTextManager")
-	if is_inside_tree(): return get_tree().root.get_node_or_null("FloatingTextManager")
-	return null
-
-func _get_sound_manager() -> Node:
-	if Engine.has_singleton("SoundManager"): return Engine.get_singleton("SoundManager")
-	if is_inside_tree(): return get_tree().root.get_node_or_null("SoundManager")
-	return null
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings: PackedStringArray = []
+	if id_cofre == "":
+		warnings.append("Se recomienda un 'id_cofre' único para guardar el estado.")
+	return warnings

@@ -1,20 +1,11 @@
-# Archivo: Componentes/ComponenteInteraccion.gd
-## Zona de interacción con objetos del mundo.
+# Archivo: addons/no_code_godot_plugin/Componentes/ComponenteInteraccion.gd
+## Zona interactiva que detecta al jugador y responde a un input.
 ##
-## **Uso:** Añade este componente a objetos interactuables (NPCs, cofres, palancas).
-## Muestra un indicador visual cuando el jugador está cerca y puede interactuar.
-##
-## **Casos de uso:**
-## - NPCs con los que hablar
-## - Cofres que se pueden abrir
-## - Palancas y botones
-## - Objetos examinables
-## - Puertas que requieren llave
-##
-## **Requisito:** Debe ser hijo de un Area2D. El jugador debe presionar la tecla de acción.
-class_name ComponenteInteraccion
+## **Uso:** Cofres, NPCs, Palancas.
+## Debe ser hijo de un Area2D.
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_Interaccion
 extends Area2D
-const _tool_context = "RuichisLab/Nodos"
 
 # --- SEÑALES ---
 signal interactuado(jugador: Node)
@@ -22,49 +13,70 @@ signal jugador_entro_rango
 signal jugador_salio_rango
 
 # --- CONFIGURACIÓN ---
+## Texto descriptivo (útil para UI flotante).
 @export var texto_interaccion: String = "Interactuar"
-@export var tecla_accion: String = "ui_accept" # Por defecto 'Enter' o 'Espacio'
+
+## Acción del Input Map requerida para interactuar.
+@export var tecla_accion: String = "ui_accept"
+
+## Si es false, ignora intentos de interacción.
 @export var es_interactuable: bool = true
+
+## Si es true, interactúa automáticamente al entrar (sin presionar tecla).
+@export var auto_interactuar: bool = false
 
 # --- ESTADO ---
 var jugador_en_rango: Node = null
 
-func _ready():
-	# Configuración automática de colisiones si no se ha hecho en el editor
-	collision_layer = 0 
-	collision_mask = 1 # Asumimos que el jugador está en la capa 1
+func _ready() -> void:
+	# Asegurar conexión segura
+	if not body_entered.is_connected(_on_body_entered):
+		body_entered.connect(_on_body_entered)
+	if not body_exited.is_connected(_on_body_exited):
+		body_exited.connect(_on_body_exited)
 	
-	body_entered.connect(_on_body_entered)
-	body_exited.connect(_on_body_exited)
-	
-	# Asegurarse de que monitorable/monitoring estén activos
-	monitoring = true
+	# Optimización: No necesitamos ser monitorable, solo monitoring
 	monitorable = false
+	monitoring = true
 
-func _input(event):
+func _unhandled_input(event: InputEvent) -> void:
 	if not es_interactuable or not jugador_en_rango: return
+	if auto_interactuar: return # Ya se manejó
 	
 	if event.is_action_pressed(tecla_accion):
 		interactuar()
+		get_viewport().set_input_as_handled()
 
-func interactuar():
-	print("Interactuando con: " + get_parent().name)
+func interactuar() -> void:
+	# print("Interactuando con: " + get_parent().name)
 	emit_signal("interactuado", jugador_en_rango)
 
-func _on_body_entered(body):
-	if body.is_in_group("jugador"):
+func _on_body_entered(body: Node2D) -> void:
+	if body.is_in_group("jugador") or body.name == "Jugador":
 		jugador_en_rango = body
 		emit_signal("jugador_entro_rango")
-		# Aquí podrías mostrar un UI prompt (ej: "Presiona E")
 
-func _on_body_exited(body):
+		if auto_interactuar and es_interactuable:
+			interactuar()
+		# Opcional: Emitir evento a un UIManager global para mostrar "Presiona E"
+		if Engine.has_singleton("UIManager"):
+			Engine.get_singleton("UIManager").call("mostrar_prompt", texto_interaccion, self)
+
+func _on_body_exited(body: Node2D) -> void:
 	if body == jugador_en_rango:
 		jugador_en_rango = null
 		emit_signal("jugador_salio_rango")
-		# Aquí ocultarías el UI prompt
+
+		if Engine.has_singleton("UIManager"):
+			Engine.get_singleton("UIManager").call("ocultar_prompt")
 
 func _get_configuration_warnings() -> PackedStringArray:
-	var warnings = []
-	if texto_interaccion.is_empty():
-		warnings.append("Define un 'texto_interaccion' para que el jugador sepa qué puede hacer.")
+	var warnings: PackedStringArray = []
+	var tiene_colision = false
+	for child in get_children():
+		if child is CollisionShape2D or child is CollisionPolygon2D:
+			tiene_colision = true
+			break
+	if not tiene_colision:
+		warnings.append("Se requiere un CollisionShape2D hijo.")
 	return warnings

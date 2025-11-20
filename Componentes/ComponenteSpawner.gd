@@ -1,82 +1,103 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponenteSpawner.gd
-## Generador de objetos con pooling.
+## Generador de instancias en intervalos regulares o manuales.
 ##
-## **Uso:** Añade este componente para generar enemigos, items o proyectiles.
-## Usa object pooling para máximo rendimiento.
-##
-## **Casos de uso:**
-## - Spawn de enemigos
-## - Generadores de items
-## - Emisores de partículas
-## - Oleadas de enemigos
-##
-## **Requisito:** Debe ser hijo de un Marker2D. Requiere PoolManager activo.
-class_name ComponenteSpawner
+## **Uso:** Ideal para oleadas de enemigos, proyectiles o items.
+## Soporta integración con PoolManager (opcional) o instanciación directa.
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_Spawner
 extends Marker2D
-const _tool_context = "RuichisLab/Nodos"
 
-## ID del objeto en el PoolManager (ej: "enemigo_basico").
-@export var id_pool: String = "enemigo_basico"
-## Comenzar a spawnear automáticamente al inicio.
-@export var auto_start: bool = false
-## Tiempo base entre spawns (segundos).
+# --- CONFIGURACIÓN ---
+
+## Escena a instanciar (si no se usa PoolManager).
+@export var escena: PackedScene
+
+## ID del objeto en el PoolManager (si se usa PoolManager).
+@export var id_pool: String = ""
+
+## Comenzar automáticamente al cargar.
+@export var auto_start: bool = true
+
+## Intervalo base entre spawns (segundos).
 @export var intervalo: float = 2.0
-## Variación aleatoria del tiempo (+/- segundos).
-@export var aleatoriedad: float = 0.5 
-## Cantidad máxima de objetos vivos simultáneos (0 = infinito).
-@export var limite_activos: int = 5
 
-var timer: Timer
-var activos: int = 0
+## Variación aleatoria (+/- segundos).
+@export var aleatoriedad: float = 0.5
 
-func _ready():
-	timer = Timer.new()
-	add_child(timer)
-	timer.timeout.connect(_on_timeout)
+## Límite de instancias activas (0 = infinito).
+@export var limite_activos: int = 0
+
+## Contenedor donde se añadirán los hijos (si vacío, se añaden al árbol raíz).
+@export var contenedor: NodePath
+
+# Estado interno
+var _timer: Timer
+var _activos: int = 0
+
+func _ready() -> void:
+	_timer = Timer.new()
+	_timer.one_shot = true
+	add_child(_timer)
+	_timer.timeout.connect(_on_timeout)
 	
 	if auto_start:
 		iniciar()
 
 ## Inicia el ciclo de generación.
-func iniciar():
-	var tiempo = intervalo + randf_range(-aleatoriedad, aleatoriedad)
-	timer.start(max(0.1, tiempo))
+func iniciar() -> void:
+	_programar_siguiente()
 
 ## Detiene la generación.
-func detener():
-	timer.stop()
+func detener() -> void:
+	_timer.stop()
 
-## Fuerza la generación de un objeto ahora mismo.
-func spawnear():
-	if activos >= limite_activos and limite_activos > 0: return
+## Fuerza el spawn inmediato.
+func spawnear() -> void:
+	if limite_activos > 0 and _activos >= limite_activos:
+		return
+
+	var instancia: Node = null
+
+	# 1. Intentar PoolManager
+	if id_pool != "" and Engine.has_singleton("PoolManager"):
+		var pm = Engine.get_singleton("PoolManager")
+		if pm.has_method("spawn"):
+			instancia = pm.spawn(id_pool, global_position, global_rotation)
+
+	# 2. Fallback a instanciación directa
+	elif escena:
+		instancia = escena.instantiate()
+		instancia.global_position = global_position
+		instancia.global_rotation = global_rotation
+
+		var target_parent = get_tree().current_scene
+		if contenedor:
+			var c = get_node_or_null(contenedor)
+			if c: target_parent = c
+
+		target_parent.add_child(instancia)
 	
-	var pm = _get_pool_manager()
-	if pm:
-		var obj = pm.spawn(id_pool, global_position, rotation)
-		if obj:
-			activos += 1
-			# Detectar cuando muere/desaparece para restar contador
-			if obj.has_signal("tree_exited"): # O una señal propia 'despawned'
-				obj.tree_exited.connect(func(): activos -= 1)
+	# Lógica post-spawn
+	if instancia:
+		_activos += 1
+		# Conectar señal de salida para decrementar contador
+		if not instancia.tree_exited.is_connected(_on_instancia_exited):
+			instancia.tree_exited.connect(_on_instancia_exited)
 
-func _on_timeout():
+func _programar_siguiente() -> void:
+	var tiempo = max(0.1, intervalo + randf_range(-aleatoriedad, aleatoriedad))
+	_timer.start(tiempo)
+
+func _on_timeout() -> void:
 	spawnear()
-	var tiempo = intervalo + randf_range(-aleatoriedad, aleatoriedad)
-	timer.start(max(0.1, tiempo))
+	_programar_siguiente()
+
+func _on_instancia_exited() -> void:
+	if _activos > 0:
+		_activos -= 1
 
 func _get_configuration_warnings() -> PackedStringArray:
-	var warnings = []
-	if not get_parent() is Marker2D:
-		warnings.append("Este componente debe ser hijo de un Marker2D para definir la posición de spawn.")
-	if not Engine.has_singleton("PoolManager") and not ProjectSettings.has_setting("autoload/PoolManager"):
-		# Nota: Esta comprobación es aproximada, ya que los autoloads se cargan en runtime.
-		# Una comprobación más robusta sería verificar si existe el nodo en el árbol si estuviéramos en runtime.
-		# Para el editor, solo podemos sugerir.
-		# Para el editor, solo podemos sugerir.
-		warnings.append("Se recomienda tener un Autoload llamado 'PoolManager' para que el pooling funcione correctamente.")
+	var warnings: PackedStringArray = []
+	if escena == null and id_pool == "":
+		warnings.append("Debes asignar una Escena o un ID de PoolManager.")
 	return warnings
-
-func _get_pool_manager() -> Node:
-	if Engine.has_singleton("PoolManager"): return Engine.get_singleton("PoolManager")
-	if is_inside_tree(): return get_tree().root.get_node_or_null("PoolManager")
-	return null

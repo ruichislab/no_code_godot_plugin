@@ -1,55 +1,89 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponenteFollower.gd
-## Seguimiento automático de un objetivo.
+## Comportamiento de seguimiento simple hacia un objetivo.
 ##
-## **Uso:** Añade este componente para que un objeto siga a otro.
-## Ideal para enemigos perseguidores o compañeros.
+## **Uso:** Añadir como hijo de un CharacterBody2D (con física) o Node2D (sin física).
+## Busca automáticamente nodos en el grupo especificado y los persigue.
 ##
 ## **Casos de uso:**
-## - Enemigos que persiguen al jugador
-## - Mascotas que siguen
-## - Proyectiles teledirigidos
-## - Compañeros de equipo
-##
-## **Requisito:** El padre debe ser CharacterBody2D.
-@icon("res://icon.svg")
-class_name ComponenteFollower
+## - Enemigos agresivos.
+## - Mascotas o acompañantes.
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_Follower
 extends Node
-const _tool_context = "RuichisLab/Nodos"
 
+# --- CONFIGURACIÓN ---
+
+## Nombre del grupo al que pertenece el objetivo (ej: "jugador").
 @export var grupo_objetivo: String = "jugador"
-@export var velocidad: float = 150.0
-@export var distancia_minima: float = 50.0
-@export var suavizado: float = 5.0
 
+## Velocidad de persecución (px/s).
+@export var velocidad: float = 150.0
+
+## Distancia de detención (para no solaparse).
+@export var distancia_detencion: float = 50.0
+
+## Distancia máxima para empezar a seguir (0 = infinito).
+@export var distancia_activacion: float = 300.0
+
+## Si es true, usa move_and_slide() (requiere CharacterBody2D). Si false, mueve posición directamente.
+@export var usar_fisicas: bool = true
+
+# Referencias
 var padre: Node2D
 var objetivo: Node2D
 
-func _ready():
+func _ready() -> void:
 	padre = get_parent() as Node2D
-	
-	# Buscar objetivo inicial
-	await get_tree().process_frame
-	var nodos = get_tree().get_nodes_in_group(grupo_objetivo)
-	if not nodos.is_empty():
-		objetivo = nodos[0]
+	if not padre:
+		push_error("RL_Follower debe ser hijo de un Node2D.")
+		set_physics_process(false)
+		return
 
-func _process(delta):
-	if not padre or not is_instance_valid(objetivo): return
-	
+func _physics_process(delta: float) -> void:
+	if not is_instance_valid(objetivo):
+		_buscar_objetivo()
+		return
+
 	var distancia = padre.global_position.distance_to(objetivo.global_position)
 	
-	if distancia > distancia_minima:
+	# Chequeo de rango de activación
+	if distancia_activacion > 0 and distancia > distancia_activacion:
+		# Objetivo muy lejos, detenerse
+		_detenerse(delta)
+		return
+
+	# Chequeo de distancia de parada
+	if distancia > distancia_detencion:
 		var direccion = (objetivo.global_position - padre.global_position).normalized()
 		
-		# Movimiento suavizado
-		var velocidad_actual = velocidad
-		if suavizado > 0:
-			# Lerp para efecto "elástico"
-			padre.global_position = padre.global_position.lerp(objetivo.global_position, suavizado * delta)
+		if usar_fisicas and padre is CharacterBody2D:
+			padre.velocity = direccion * velocidad
+			padre.move_and_slide()
 		else:
-			# Movimiento lineal constante
 			padre.global_position += direccion * velocidad * delta
 			
-		# Girar sprite hacia objetivo
+		# Orientación básica (Flip horizontal)
 		if direccion.x != 0:
 			padre.scale.x = abs(padre.scale.x) * sign(direccion.x)
+	else:
+		_detenerse(delta)
+
+func _detenerse(delta: float) -> void:
+	if usar_fisicas and padre is CharacterBody2D:
+		padre.velocity = padre.velocity.move_toward(Vector2.ZERO, 1000 * delta)
+		padre.move_and_slide()
+
+func _buscar_objetivo() -> void:
+	# Intenta encontrar un objetivo vivo en el grupo
+	var nodos = get_tree().get_nodes_in_group(grupo_objetivo)
+	if not nodos.is_empty():
+		# Tomar el primero (se podría mejorar para tomar el más cercano)
+		objetivo = nodos[0]
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings: PackedStringArray = []
+	if not get_parent() is Node2D:
+		warnings.append("El padre debe ser un Node2D.")
+	if usar_fisicas and not get_parent() is CharacterBody2D:
+		warnings.append("Modo 'usar_fisicas' activado pero el padre no es CharacterBody2D.")
+	return warnings
