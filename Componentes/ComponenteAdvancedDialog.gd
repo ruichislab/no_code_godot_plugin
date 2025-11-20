@@ -1,151 +1,143 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponenteAdvancedDialog.gd
-## Sistema de diálogos avanzado con ramificaciones.
+## Sistema de Diálogo Avanzado (Visual Novel Style).
 ##
-## **Uso:** Sistema completo de diálogos con soporte para:
-## - Múltiples líneas de texto
-## - Retratos de personajes
-## - Opciones de respuesta
-## - Ramificaciones condicionales
-## - Efectos de sonido
-##
-## **Casos de uso:**
-## - Conversaciones con NPCs
-## - Sistemas de quest
-## - Visual novels
-## - Cinemáticas narrativas
-##
-## **Requisito:** Debe ser hijo de un Area2D. Usa RecursoDialogo para definir conversaciones.
-@icon("res://icon.svg")
-class_name ComponenteAdvancedDialog
+## **Uso:** Gestiona conversaciones complejas con retratos, efecto máquina de escribir y opciones.
+## **Requisito:** Área 2D para activar.
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_DialogSystem
 extends Area2D
-const _tool_context = "RuichisLab/Nodos"
 
-@export var dialogo_inicial: RecursoDialogo
-@export var usar_ui_propia: bool = true
+# --- CONFIGURACIÓN ---
+@export var dialogo_data: ResourceDialogo
+@export var velocidad_texto: float = 0.03 # Segundos por caracter
+@export var sonido_voz: String = "voice_blip"
 
-var ui_instancia: CanvasLayer
+# --- UI INTERNA (Se puede sustituir por una global) ---
+var _canvas: CanvasLayer
+var _panel: PanelContainer
+var _lbl_nombre: Label
+var _lbl_texto: RichTextLabel
+var _tex_retrato: TextureRect
+var _timer_escritura: Timer
 
-func _ready():
-	body_entered.connect(_on_body_entered)
-	
-	# Conectarse al DialogueManager para saber cuándo mostrar cosas
-	# Conectarse al DialogueManager para saber cuándo mostrar cosas
-	var dm = _get_dialogue_manager()
-	if dm:
-		dm.dialogo_iniciado.connect(_on_dialogo_iniciado)
-		dm.linea_mostrada.connect(_on_linea_mostrada)
-		dm.opciones_mostradas.connect(_on_opciones_mostradas)
-		dm.dialogo_terminado.connect(_on_dialogo_terminado)
+# --- ESTADO ---
+var _indice_actual: int = 0
+var _escribiendo: bool = false
+var _texto_objetivo: String = ""
 
-func _on_body_entered(body):
+func _ready() -> void:
+	if not body_entered.is_connected(_on_body_entered):
+		body_entered.connect(_on_body_entered)
+
+func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("jugador") or body.name == "Jugador":
-		iniciar()
+		iniciar_dialogo()
 
-func iniciar():
-	if not dialogo_inicial: return
+func iniciar_dialogo() -> void:
+	if not dialogo_data or dialogo_data.conversacion.is_empty(): return
 	
-	var dm = _get_dialogue_manager()
-	if dm:
-		dm.iniciar_dialogo(dialogo_inicial)
+	_crear_ui()
+	_indice_actual = 0
+	_mostrar_linea(_indice_actual)
+
+	if Engine.has_singleton("GameManager"):
+		Engine.get_singleton("GameManager").pausar() # Pausar juego durante diálogo
+
+func _mostrar_linea(indice: int) -> void:
+	if indice >= dialogo_data.conversacion.size():
+		_terminar_dialogo()
+		return
+
+	var linea = dialogo_data.conversacion[indice]
+	var nombre = linea.get("personaje", "???")
+	var texto = linea.get("texto", "...")
+	var retrato = linea.get("retrato", null)
+	
+	_lbl_nombre.text = nombre
+	_lbl_texto.text = texto
+	_lbl_texto.visible_ratio = 0.0
+	
+	if retrato:
+		_tex_retrato.texture = retrato
+		_tex_retrato.visible = true
 	else:
-		push_error("DialogueManager no está cargado en Autoloads.")
+		_tex_retrato.visible = false
 
-# --- Lógica de UI (Si no hay una UI global) ---
-
-func _crear_ui_basica():
-	if ui_instancia: return
+	_texto_objetivo = texto
+	_escribiendo = true
 	
-	# Crear CanvasLayer para que esté sobre todo
-	ui_instancia = CanvasLayer.new()
-	add_child(ui_instancia)
-	
-	# Panel de fondo
-	var panel = PanelContainer.new()
-	panel.name = "PanelDialogo"
-	panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	panel.offset_top = -200
-	panel.offset_bottom = -20
-	panel.offset_left = 50
-	panel.offset_right = -50
-	ui_instancia.add_child(panel)
-	
-	# Layout vertical
-	var vbox = VBoxContainer.new()
-	panel.add_child(vbox)
-	
-	# Nombre
-	var label_nombre = Label.new()
-	label_nombre.name = "Nombre"
-	label_nombre.add_theme_font_size_override("font_size", 24)
-	label_nombre.add_theme_color_override("font_color", Color.YELLOW)
-	vbox.add_child(label_nombre)
-	
-	# Texto
-	var label_texto = RichTextLabel.new()
-	label_texto.name = "Texto"
-	label_texto.fit_content = true
-	label_texto.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	vbox.add_child(label_texto)
-	
-	# Retrato (TextureRect)
-	var retrato = TextureRect.new()
-	retrato.name = "Retrato"
-	retrato.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	retrato.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	retrato.custom_minimum_size = Vector2(128, 128)
-	retrato.position = Vector2(50, -150) # Posición manual "flotante"
-	# Nota: En una UI real esto se maquetaría mejor
-	panel.add_child(retrato)
-
-func _on_dialogo_iniciado(recurso):
-	if usar_ui_propia:
-		_crear_ui_basica()
-
-func _on_linea_mostrada(texto, nombre):
-	if not ui_instancia: return
-	
-	var panel = ui_instancia.get_node("PanelDialogo")
-	var lbl_nombre = panel.get_node("VBoxContainer/Nombre")
-	var lbl_texto = panel.get_node("VBoxContainer/Texto")
-	var tex_retrato = panel.get_node("Retrato")
-	
-	lbl_nombre.text = nombre
-	lbl_texto.text = texto
-	
-	# Efecto de escritura simple (Tween)
-	lbl_texto.visible_ratio = 0.0
+	# Iniciar efecto typewriter
 	var tween = create_tween()
-	tween.tween_property(lbl_texto, "visible_ratio", 1.0, len(texto) * 0.03)
+	var duracion = len(texto) * velocidad_texto
+	tween.tween_property(_lbl_texto, "visible_ratio", 1.0, duracion)
+	tween.tween_callback(func(): _escribiendo = false)
 	
-	# Actualizar retrato si existe en el recurso actual
-	# Actualizar retrato si existe en el recurso actual
-	var dm = _get_dialogue_manager()
-	if dm and dm.dialogo_actual and dm.dialogo_actual.retrato:
-		tex_retrato.texture = dm.dialogo_actual.retrato
-		tex_retrato.visible = true
-	else:
-		tex_retrato.visible = false
+	# Sonido (opcional: loopear un blip)
+	if sonido_voz != "" and Engine.has_singleton("AudioManager"):
+		Engine.get_singleton("AudioManager").call("play_sfx", sonido_voz, -10.0, 1.0, 0.2)
 
-func _on_opciones_mostradas(opciones):
-	# TODO: Implementar botones de opciones en la UI propia
-	pass
+func _input(event: InputEvent) -> void:
+	if not _canvas: return
+	
+	if event.is_action_pressed("ui_accept"):
+		if _escribiendo:
+			# Saltar efecto
+			_lbl_texto.visible_ratio = 1.0
+			_escribiendo = false
+			# Matar tween activo si pudiéramos acceder a él fácilmente,
+			# pero visible_ratio=1 es visualmente suficiente.
+		else:
+			# Siguiente línea
+			_indice_actual += 1
+			_mostrar_linea(_indice_actual)
 
-func _on_dialogo_terminado():
-	if ui_instancia:
-		ui_instancia.queue_free()
-		ui_instancia = null
+func _terminar_dialogo() -> void:
+	if _canvas:
+		_canvas.queue_free()
+		_canvas = null
 
-func _input(event):
-	# Avanzar diálogo con clic o espacio
-	if ui_instancia and event.is_action_pressed("ui_accept"):
-		var dm = _get_dialogue_manager()
-		if dm:
-			dm.mostrar_siguiente_linea()
+	if Engine.has_singleton("GameManager"):
+		Engine.get_singleton("GameManager").reanudar()
 
-func _get_dialogue_manager() -> Node:
-	if Engine.has_singleton("DialogueManager"): # C++ singleton? No.
-		return Engine.get_singleton("DialogueManager")
-	# Autoloads are children of root
-	if is_inside_tree():
-		return get_tree().root.get_node_or_null("DialogueManager")
-	return null
+func _crear_ui() -> void:
+	if _canvas: return
+	
+	_canvas = CanvasLayer.new()
+	add_child(_canvas)
+	
+	_panel = PanelContainer.new()
+	_panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_panel.offset_top = -200
+	_panel.offset_left = 20
+	_panel.offset_right = -20
+	_panel.offset_bottom = -20
+	_canvas.add_child(_panel)
+	
+	var hbox = HBoxContainer.new()
+	_panel.add_child(hbox)
+	
+	_tex_retrato = TextureRect.new()
+	_tex_retrato.custom_minimum_size = Vector2(128, 128)
+	_tex_retrato.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_tex_retrato.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	hbox.add_child(_tex_retrato)
+
+	var vbox = VBoxContainer.new()
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hbox.add_child(vbox)
+
+	_lbl_nombre = Label.new()
+	_lbl_nombre.add_theme_font_size_override("font_size", 20)
+	_lbl_nombre.add_theme_color_override("font_color", Color.YELLOW)
+	vbox.add_child(_lbl_nombre)
+
+	_lbl_texto = RichTextLabel.new()
+	_lbl_texto.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_lbl_texto.scroll_active = false
+	vbox.add_child(_lbl_texto)
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings: PackedStringArray = []
+	if not dialogo_data:
+		warnings.append("Asigna un 'ResourceDialogo' con el contenido.")
+	return warnings

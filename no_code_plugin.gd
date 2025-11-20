@@ -28,7 +28,7 @@ func _enter_tree() -> void:
 	add_custom_type_safe("RuichisLab/Logic/PauseListener", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponentePauseListener.gd"), icon_default)
 	add_custom_type_safe("RuichisLab/Logic/Interaccion", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteInteraccion.gd"), icon_area)
 	add_custom_type_safe("RuichisLab/Logic/SimpleDialog", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteSimpleDialog.gd"), icon_area)
-	add_custom_type_safe("RuichisLab/Logic/AdvancedDialog", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteAdvancedDialog.gd"), icon_area)
+	add_custom_type_safe("RuichisLab/Logic/DialogSystem", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteAdvancedDialog.gd"), icon_area)
 	add_custom_type_safe("RuichisLab/Logic/QuestGiver", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteQuestGiver.gd"), icon_area)
 	add_custom_type_safe("RuichisLab/Logic/QuestObjective", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteQuestObjective.gd"), icon_area)
 	add_custom_type_safe("RuichisLab/Logic/Key", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteKey.gd"), icon_area)
@@ -141,6 +141,7 @@ func _registrar_autoloads() -> void:
 	_safe_add_autoload("AudioManager", "res://addons/no_code_godot_plugin/Autoloads/AudioManager.gd")
 	_safe_add_autoload("SaveManager", "res://addons/no_code_godot_plugin/Autoloads/SaveManager.gd")
 	_safe_add_autoload("PoolManager", "res://addons/no_code_godot_plugin/Autoloads/PoolManager.gd")
+	_safe_add_autoload("TimeManager", "res://addons/no_code_godot_plugin/Servicios/TimeManager.gd") # NEW
 	_safe_add_autoload("DialogueManager", "res://addons/no_code_godot_plugin/Servicios/DialogueManager.gd")
 	_safe_add_autoload("InventarioGlobal", "res://addons/no_code_godot_plugin/Datos/Inventario/InventarioGlobal.gd")
 	_safe_add_autoload("DebugConsole", "res://addons/no_code_godot_plugin/Servicios/DebugConsole.gd")
@@ -154,6 +155,7 @@ func _remover_autoloads() -> void:
 	_safe_remove_autoload("AudioManager")
 	_safe_remove_autoload("SaveManager")
 	_safe_remove_autoload("PoolManager")
+	_safe_remove_autoload("TimeManager")
 	_safe_remove_autoload("DialogueManager")
 	_safe_remove_autoload("InventarioGlobal")
 	_safe_remove_autoload("DebugConsole")
@@ -165,17 +167,11 @@ func _remover_autoloads() -> void:
 # Helper seguro para añadir Autoloads sin recursión
 func _safe_add_autoload(name: String, path: String) -> void:
 	if Engine.has_singleton(name): return
-	# Llamamos al método nativo si existe
 	if has_method("add_autoload_singleton"):
 		self.call("add_autoload_singleton", name, path)
 
 # Helper seguro para remover Autoloads
 func _safe_remove_autoload(name: String) -> void:
-	# Eliminamos solo si existe, para no ensuciar logs
-	# Nota: remove_autoload_singleton remueve de ProjectSettings, no solo de Engine.
-	# Sin embargo, para respetar configuraciones de usuario, a veces es mejor no borrar.
-	# Si queremos ser "profesionales", debemos limpiar lo que creamos.
-	# Verificamos si existe en ProjectSettings antes de intentar borrar
 	if ProjectSettings.has_setting("autoload/" + name):
 		if has_method("remove_autoload_singleton"):
 			self.call("remove_autoload_singleton", name)
@@ -187,6 +183,7 @@ func _remove_current_types() -> void:
 		"RuichisLab/Logic/Interaccion", "RuichisLab/Logic/SimpleDialog", "RuichisLab/Logic/AdvancedDialog", "RuichisLab/Logic/QuestGiver",
 		"RuichisLab/Logic/QuestObjective", "RuichisLab/Logic/Key", "RuichisLab/Logic/Door", "RuichisLab/Logic/ItemChest",
 		"RuichisLab/Logic/SavePoint", "RuichisLab/Logic/Shop", "RuichisLab/Logic/Timer", "RuichisLab/Logic/SimpleAnimator",
+		"RuichisLab/Logic/DialogSystem", # NEW
 		"RuichisLab/Combat/Hurtbox", "RuichisLab/Combat/Hitbox", "RuichisLab/Combat/LootDropper", "RuichisLab/Combat/Destructible",
 		"RuichisLab/Combat/MeleeWeapon", "RuichisLab/Combat/Dash", "RuichisLab/Combat/Knockback", "RuichisLab/Combat/Efectos",
 		"RuichisLab/Combat/HitFlash", "RuichisLab/Combat/Trail", "RuichisLab/Combat/OnDeath", "RuichisLab/Combat/Proyectil",
@@ -216,8 +213,7 @@ func _remove_current_types() -> void:
 func _remove_old_types() -> void:
 	# Versiones antiguas para limpiar
 	var old_types = [
-		"NC_Trigger", "NC_Interaccion", "RuichisLab/Trigger", "RuichisLab/InputListener"
-		# ... lista simplificada para ahorrar espacio, en teoría _remove_current_types cubre la mayoría si el nombre coincide
+		"NC_Trigger", "NC_Interaccion", "RuichisLab/Trigger", "RuichisLab/InputListener", "RuichisLab/Logic/AdvancedDialog"
 	]
 	for t in old_types:
 		if has_method("remove_custom_type"):

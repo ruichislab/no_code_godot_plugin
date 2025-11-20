@@ -55,9 +55,9 @@ func _process(_delta: float) -> void:
 func atacar() -> void:
 	puede_atacar = false
 	
-	# Sonido
+	# Sonido (Corregido: usar 'reproducir_sfx' en español)
 	if sonido_ataque != "" and Engine.has_singleton("AudioManager"):
-		Engine.get_singleton("AudioManager").call("play_sfx", sonido_ataque)
+		Engine.get_singleton("AudioManager").call("reproducir_sfx", sonido_ataque)
 		
 	# Animación
 	if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation(animacion_ataque):

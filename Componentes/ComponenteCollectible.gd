@@ -44,11 +44,11 @@ func recoger() -> void:
 		if inv.has_method("agregar_item"):
 			inv.agregar_item(item_inventario, valor_a_sumar)
 	
-	# 3. Sonido
+	# 3. Sonido (Corregido: usar 'reproducir_sfx' en español)
 	if sonido_recoger != "" and Engine.has_singleton("AudioManager"):
 		var am = Engine.get_singleton("AudioManager")
-		if am.has_method("play_sfx"):
-			am.play_sfx(sonido_recoger)
+		if am.has_method("reproducir_sfx"):
+			am.reproducir_sfx(sonido_recoger)
 
 	# 4. Eliminar
 	if eliminar_al_recoger:

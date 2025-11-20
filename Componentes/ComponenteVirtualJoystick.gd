@@ -1,8 +1,5 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponenteVirtualJoystick.gd
-## Joystick virtual en pantalla para controles táctiles (Móvil).
-##
-## **Uso:** Emula acciones del Input Map (izquierda/derecha/arriba/abajo) o devuelve un vector.
-## **Requisito:** Control (CanvasLayer o UI overlay).
+## Joystick virtual para controles táctiles.
 @icon("res://addons/no_code_godot_plugin/deck_icon.png")
 class_name RL_VirtualJoystick
 extends Control
@@ -22,98 +19,79 @@ extends Control
 @export var radio_palanca: float = 40.0
 
 @export_group("Comportamiento")
-## Si es true, el joystick aparece donde tocas (Dynamic Joystick).
+## Si es true, el joystick aparece donde tocas.
 @export var modo_dinamico: bool = false
 
-## Zona muerta antes de registrar movimiento (0.0 a 1.0).
+## Zona muerta (0.0 a 1.0).
 @export var zona_muerta: float = 0.1
 
 # --- ESTADO ---
-var _touch_index: int = -1
+var _indice_toque: int = -1
 var _pos_base: Vector2
 var _pos_palanca_rel: Vector2 = Vector2.ZERO
-var _output: Vector2 = Vector2.ZERO
+var _salida: Vector2 = Vector2.ZERO
 var _pos_original: Vector2
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_pos_base = size / 2
-	_pos_original = position # Para modo dinámico si se implementa reset
+	_pos_original = position
 
-func _gui_input(event: InputEvent) -> void:
-	if event is InputEventScreenTouch:
-		if event.pressed:
-			# Iniciar toque si no hay otro activo
-			if _touch_index == -1:
-				if modo_dinamico or event.position.distance_to(_pos_base) < radio_base:
-					_touch_index = event.index
+func _gui_input(evento: InputEvent) -> void:
+	if evento is InputEventScreenTouch:
+		if evento.pressed:
+			if _indice_toque == -1:
+				if modo_dinamico or evento.position.distance_to(_pos_base) < radio_base:
+					_indice_toque = evento.index
 					if modo_dinamico:
-						_pos_base = event.position
+						_pos_base = evento.position
 						queue_redraw()
-					_actualizar_palanca(event.position)
-		elif event.index == _touch_index:
-			# Soltar toque
-			_touch_index = -1
+					_actualizar_palanca(evento.position)
+		elif evento.index == _indice_toque:
+			_indice_toque = -1
 			_reset_palanca()
 			
-	elif event is InputEventScreenDrag:
-		if event.index == _touch_index:
-			_actualizar_palanca(event.position)
+	elif evento is InputEventScreenDrag:
+		if evento.index == _indice_toque:
+			_actualizar_palanca(evento.position)
 
 func _draw() -> void:
-	if _touch_index == -1 and modo_dinamico: return # Ocultar si es dinámico y no se toca
-
-	# Dibujar Base
+	if _indice_toque == -1 and modo_dinamico: return
 	draw_circle(_pos_base, radio_base, color_base)
-
-	# Dibujar Palanca
 	draw_circle(_pos_base + _pos_palanca_rel, radio_palanca, color_palanca)
 
-func _actualizar_palanca(pos_touch: Vector2) -> void:
-	var delta = pos_touch - _pos_base
-	
-	# Limitar al radio
+func _actualizar_palanca(pos_toque: Vector2) -> void:
+	var delta = pos_toque - _pos_base
 	if delta.length() > radio_base:
 		delta = delta.normalized() * radio_base
 	
 	_pos_palanca_rel = delta
+	var salida_cruda = _pos_palanca_rel / radio_base
 
-	# Calcular output normalizado
-	var raw_output = _pos_palanca_rel / radio_base
-
-	# Zona muerta
-	if raw_output.length() < zona_muerta:
-		_output = Vector2.ZERO
+	if salida_cruda.length() < zona_muerta:
+		_salida = Vector2.ZERO
 	else:
-		_output = raw_output
+		_salida = salida_cruda
 
 	queue_redraw()
 	_simular_input()
 
 func _reset_palanca() -> void:
 	_pos_palanca_rel = Vector2.ZERO
-	_output = Vector2.ZERO
-	if modo_dinamico:
-		# Resetear posición base si se desea, o dejarla oculta
-		pass
-
+	_salida = Vector2.ZERO
 	queue_redraw()
 	_liberar_input()
 
 func _simular_input() -> void:
-	# Emular acciones físicas
-	_actualizar_accion(accion_izquierda, _output.x < -zona_muerta)
-	_actualizar_accion(accion_derecha, _output.x > zona_muerta)
-	_actualizar_accion(accion_arriba, _output.y < -zona_muerta)
-	_actualizar_accion(accion_abajo, _output.y > zona_muerta)
+	_actualizar_accion(accion_izquierda, _salida.x < -zona_muerta)
+	_actualizar_accion(accion_derecha, _salida.x > zona_muerta)
+	_actualizar_accion(accion_arriba, _salida.y < -zona_muerta)
+	_actualizar_accion(accion_abajo, _salida.y > zona_muerta)
 
 func _actualizar_accion(accion: String, presionado: bool) -> void:
 	if accion == "": return
-	
-	if presionado:
-		Input.action_press(accion)
-	else:
-		Input.action_release(accion)
+	if presionado: Input.action_press(accion)
+	else: Input.action_release(accion)
 
 func _liberar_input() -> void:
 	if accion_izquierda != "": Input.action_release(accion_izquierda)
@@ -121,6 +99,5 @@ func _liberar_input() -> void:
 	if accion_arriba != "": Input.action_release(accion_arriba)
 	if accion_abajo != "": Input.action_release(accion_abajo)
 
-## Obtener el vector de movimiento (-1 a 1).
-func get_output() -> Vector2:
-	return _output
+func obtener_salida() -> Vector2:
+	return _salida

@@ -1,9 +1,7 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponentePlatformerController.gd
 ## Controlador avanzado de físicas para plataformas 2D.
 ##
-## **Uso:** Implementa movimiento horizontal y salto con "game feel" (Coyote Time, Jump Buffer).
-## Ajusta los parámetros de altura y tiempo de salto para definir la gravedad automáticamente.
-## **Requisito:** Hijo de CharacterBody2D.
+## **Uso:** Implementa movimiento horizontal y salto con "game feel" (Tiempo Coyote, Buffer de Salto).
 @icon("res://addons/no_code_godot_plugin/deck_icon.png")
 class_name RL_PlatformerController
 extends Node
@@ -32,9 +30,9 @@ extends Node
 
 @export_group("Asistencias (Game Feel)")
 ## Tiempo de gracia para saltar tras caer de una plataforma (segundos).
-@export var coyote_time: float = 0.1
+@export var tiempo_coyote: float = 0.1
 ## Tiempo que se recuerda la pulsación de salto antes de tocar suelo (segundos).
-@export var jump_buffer: float = 0.1
+@export var buffer_salto: float = 0.1
 
 # --- VARIABLES INTERNAS (Calculadas) ---
 var gravedad_subida: float
@@ -43,8 +41,8 @@ var velocidad_salto: float
 
 var cuerpo: CharacterBody2D
 var saltos_restantes: int = 0
-var tiempo_coyote_timer: float = 0.0
-var jump_buffer_timer: float = 0.0
+var timer_coyote: float = 0.0
+var timer_buffer_salto: float = 0.0
 
 func _ready() -> void:
 	cuerpo = get_parent() as CharacterBody2D
@@ -56,7 +54,6 @@ func _ready() -> void:
 	_recalcular_fisicas()
 
 func _recalcular_fisicas() -> void:
-	# Matemáticas de salto parabólico
 	velocidad_salto = ((2.0 * altura_salto) / tiempo_pico_salto) * -1.0
 	gravedad_subida = ((-2.0 * altura_salto) / (tiempo_pico_salto * tiempo_pico_salto)) * -1.0
 	gravedad_bajada = ((-2.0 * altura_salto) / (tiempo_bajada_salto * tiempo_bajada_salto)) * -1.0
@@ -72,43 +69,36 @@ func _physics_process(delta: float) -> void:
 	# 2. TIMERS Y ESTADO
 	if cuerpo.is_on_floor():
 		saltos_restantes = saltos_extra
-		tiempo_coyote_timer = coyote_time
+		timer_coyote = tiempo_coyote
 	else:
-		tiempo_coyote_timer -= delta
+		timer_coyote -= delta
 		
 	if quiere_saltar:
-		jump_buffer_timer = jump_buffer
+		timer_buffer_salto = buffer_salto
 	else:
-		jump_buffer_timer -= delta
+		timer_buffer_salto -= delta
 	
 	# 3. GRAVEDAD
-	# Usamos gravedad diferente para subir y bajar para saltos más "pesados" y precisos
 	var gravedad_actual = gravedad_subida if cuerpo.velocity.y < 0 else gravedad_bajada
 	cuerpo.velocity.y += gravedad_actual * delta
 	
 	# 4. MOVIMIENTO HORIZONTAL
 	if input_x != 0:
 		cuerpo.velocity.x = move_toward(cuerpo.velocity.x, input_x * velocidad_maxima, aceleracion * delta)
-
-		# Orientación visual (Sprite)
-		# Asume que el primer hijo Sprite2D o AnimatedSprite2D es el visual
 		_voltear_sprite(input_x)
 	else:
 		var fric = friccion if cuerpo.is_on_floor() else friccion_aire
 		cuerpo.velocity.x = move_toward(cuerpo.velocity.x, 0, fric * delta)
 	
 	# 5. SALTO
-	# Condición: Buffer activo Y (Coyote Time activo O Saltos Extra disponibles)
-	if jump_buffer_timer > 0:
-		if tiempo_coyote_timer > 0:
-			# Salto normal (o coyote)
+	if timer_buffer_salto > 0:
+		if timer_coyote > 0:
 			_realizar_salto()
 		elif saltos_restantes > 0:
-			# Salto aéreo
 			_realizar_salto()
 			saltos_restantes -= 1
 			
-	# Salto variable (soltar botón para caer antes)
+	# Salto variable
 	if solto_salto and cuerpo.velocity.y < 0:
 		cuerpo.velocity.y *= 0.5
 		
@@ -116,8 +106,8 @@ func _physics_process(delta: float) -> void:
 
 func _realizar_salto() -> void:
 	cuerpo.velocity.y = velocidad_salto
-	jump_buffer_timer = 0
-	tiempo_coyote_timer = 0 # Consumir coyote time
+	timer_buffer_salto = 0
+	timer_coyote = 0
 
 func _voltear_sprite(direccion_x: float) -> void:
 	for child in cuerpo.get_children():
