@@ -76,6 +76,8 @@ func _enter_tree() -> void:
 	add_custom_type_safe("RuichisLab/Utils/SaveSlotButton", "Button", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteSaveSlotButton.gd"), icon_default)
 	add_custom_type_safe("RuichisLab/Utils/InputRemapButton", "Button", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteInputRemapButton.gd"), icon_default)
 	add_custom_type_safe("RuichisLab/Utils/InventoryGrid", "GridContainer", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteInventoryGrid.gd"), icon_default)
+	add_custom_type_safe("RuichisLab/Utils/EquipmentSlot", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteEquipmentSlot.gd"), icon_default)
+	add_custom_type_safe("RuichisLab/Utils/Stats", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteStats.gd"), icon_default)
 
 	# ESTRATEGIA
 	add_custom_type_safe("RuichisLab/Strategy/TurnManager", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteTurnManager.gd"), icon_default)
@@ -193,7 +195,7 @@ func _remove_current_types() -> void:
 		"RuichisLab/Utils/Floating", "RuichisLab/Utils/Rotator", "RuichisLab/Utils/LookAt", "RuichisLab/Utils/Footsteps",
 		"RuichisLab/Utils/Collectible", "RuichisLab/Utils/SceneButton", "RuichisLab/Utils/OpenMenuButton", "RuichisLab/Utils/MenuManager",
 		"RuichisLab/Utils/QuitButton", "RuichisLab/Utils/VolumeSlider", "RuichisLab/Utils/SaveSlotButton", "RuichisLab/Utils/InputRemapButton",
-		"RuichisLab/Utils/InventoryGrid",
+		"RuichisLab/Utils/InventoryGrid", "RuichisLab/Utils/EquipmentSlot", "RuichisLab/Utils/Stats",
 		"RuichisLab/Strategy/TurnManager", "RuichisLab/Strategy/Selectable", "RuichisLab/Strategy/GridMovement",
 		"RuichisLab/Cards/Card", "RuichisLab/Cards/Hand", "RuichisLab/Cards/Deck", "RuichisLab/Cards/DiscardPile", "RuichisLab/Cards/CardSlot",
 		"RuichisLab/Tycoon/ResourceGenerator", "RuichisLab/Tycoon/BuildingPlacer", "RuichisLab/Tycoon/Clicker",
