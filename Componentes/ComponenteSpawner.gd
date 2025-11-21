@@ -1,103 +1,126 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponenteSpawner.gd
-## Generador de instancias en intervalos regulares o manuales.
+## Generador de instancias (Spawners) con visualización de radio.
 ##
-## **Uso:** Ideal para oleadas de enemigos, proyectiles o items.
-## Soporta integración con PoolManager (opcional) o instanciación directa.
+## **Uso:** Oleadas, enemigos, items.
+## **Visualización:** Dibuja un círculo amarillo o el sprite de la escena.
+@tool
 @icon("res://addons/no_code_godot_plugin/deck_icon.png")
 class_name RL_Spawner
 extends Marker2D
 
 # --- CONFIGURACIÓN ---
+@export var escena: PackedScene:
+	set(val):
+		escena = val
+		queue_redraw()
 
-## Escena a instanciar (si no se usa PoolManager).
-@export var escena: PackedScene
-
-## ID del objeto en el PoolManager (si se usa PoolManager).
 @export var id_pool: String = ""
-
-## Comenzar automáticamente al cargar.
 @export var auto_start: bool = true
-
-## Intervalo base entre spawns (segundos).
 @export var intervalo: float = 2.0
-
-## Variación aleatoria (+/- segundos).
 @export var aleatoriedad: float = 0.5
-
-## Límite de instancias activas (0 = infinito).
 @export var limite_activos: int = 0
-
-## Contenedor donde se añadirán los hijos (si vacío, se añaden al árbol raíz).
 @export var contenedor: NodePath
 
-# Estado interno
+@export_group("Visualización")
+@export var radio_spawn: float = 0.0: # 0 = puntual
+	set(val):
+		radio_spawn = val
+		queue_redraw()
+
+# --- ESTADO ---
 var _timer: Timer
 var _activos: int = 0
 
 func _ready() -> void:
-	_timer = Timer.new()
-	_timer.one_shot = true
-	add_child(_timer)
-	_timer.timeout.connect(_on_timeout)
-	
-	if auto_start:
-		iniciar()
+	if not Engine.is_editor_hint():
+		_timer = Timer.new()
+		_timer.one_shot = true
+		add_child(_timer)
+		_timer.timeout.connect(_on_timeout)
 
-## Inicia el ciclo de generación.
+		if auto_start:
+			iniciar()
+
 func iniciar() -> void:
 	_programar_siguiente()
 
-## Detiene la generación.
 func detener() -> void:
-	_timer.stop()
+	if _timer: _timer.stop()
 
-## Fuerza el spawn inmediato.
 func spawnear() -> void:
-	if limite_activos > 0 and _activos >= limite_activos:
-		return
+	if limite_activos > 0 and _activos >= limite_activos: return
+
+	# Calcular posición aleatoria si hay radio
+	var offset = Vector2.ZERO
+	if radio_spawn > 0:
+		var angulo = randf() * TAU
+		var dist = sqrt(randf()) * radio_spawn
+		offset = Vector2(cos(angulo), sin(angulo)) * dist
+
+	var pos_final = global_position + offset
 
 	var instancia: Node = null
 
-	# 1. Intentar PoolManager
+	# Pool vs Instancia
 	if id_pool != "" and Engine.has_singleton("PoolManager"):
 		var pm = Engine.get_singleton("PoolManager")
-		if pm.has_method("spawn"):
-			instancia = pm.spawn(id_pool, global_position, global_rotation)
-
-	# 2. Fallback a instanciación directa
+		if pm.has_method("instanciar"):
+			instancia = pm.instanciar(id_pool, pos_final, global_rotation)
 	elif escena:
 		instancia = escena.instantiate()
-		instancia.global_position = global_position
-		instancia.global_rotation = global_rotation
+		if instancia is Node2D:
+			instancia.global_position = pos_final
+			instancia.global_rotation = global_rotation
 
-		var target_parent = get_tree().current_scene
+		var target = get_tree().current_scene
 		if contenedor:
 			var c = get_node_or_null(contenedor)
-			if c: target_parent = c
-
-		target_parent.add_child(instancia)
+			if c: target = c
+		target.add_child(instancia)
 	
-	# Lógica post-spawn
 	if instancia:
 		_activos += 1
-		# Conectar señal de salida para decrementar contador
 		if not instancia.tree_exited.is_connected(_on_instancia_exited):
 			instancia.tree_exited.connect(_on_instancia_exited)
 
 func _programar_siguiente() -> void:
 	var tiempo = max(0.1, intervalo + randf_range(-aleatoriedad, aleatoriedad))
-	_timer.start(tiempo)
+	if _timer: _timer.start(tiempo)
 
 func _on_timeout() -> void:
 	spawnear()
 	_programar_siguiente()
 
 func _on_instancia_exited() -> void:
-	if _activos > 0:
-		_activos -= 1
+	if _activos > 0: _activos -= 1
+
+# --- DEBUG VISUAL ---
+func _draw() -> void:
+	if not Engine.is_editor_hint(): return
+
+	var color = Color.YELLOW
+
+	# Icono central
+	draw_circle(Vector2.ZERO, 8.0, color)
+	draw_line(Vector2(-5, 0), Vector2(5, 0), Color.BLACK, 2.0)
+	draw_line(Vector2(0, -5), Vector2(0, 5), Color.BLACK, 2.0)
+
+	# Área
+	if radio_spawn > 0:
+		draw_arc(Vector2.ZERO, radio_spawn, 0, TAU, 32, color, 1.0)
+		var col_trans = color
+		col_trans.a = 0.1
+		draw_circle(Vector2.ZERO, radio_spawn, col_trans)
+
+	# Preview Sprite (si hay escena asignada)
+	if escena:
+		var estado = escena.get_state()
+		# Intentar encontrar propiedad "texture" en el nodo raíz o primer hijo
+		# Esto es complejo sin instanciar (lo cual es lento).
+		# Mejor dibujamos el nombre.
+		draw_string(ThemeDB.get_fallback_font(), Vector2(-20, -15), "Spawn: " + escena.resource_path.get_file(), HORIZONTAL_ALIGNMENT_CENTER, -1, 12, Color.WHITE)
 
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings: PackedStringArray = []
-	if escena == null and id_pool == "":
-		warnings.append("Debes asignar una Escena o un ID de PoolManager.")
+	if not escena and id_pool == "": warnings.append("Falta Escena o ID Pool.")
 	return warnings
