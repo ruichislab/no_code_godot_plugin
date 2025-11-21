@@ -1,77 +1,66 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponenteMeleeWeapon.gd
-## Arma de combate cuerpo a cuerpo.
+## Sistema básico de ataque cuerpo a cuerpo.
 ##
-## **Uso:** Añade este componente al jugador para crear ataques melee.
-## Activa un Hitbox cuando se presiona el botón de ataque.
-##
-## **Casos de uso:**
-## - Espadas
-## - Hachas
-## - Puños
-## - Lanzas
-## - Martillos
-##
-## **Requisito:** Debe tener un hijo Hitbox. Requiere AnimationPlayer para animaciones.
-@icon("res://icon.svg")
-class_name ComponenteMeleeWeapon
+## **Uso:** Gestiona la entrada de ataque, cooldowns, animaciones y activación/desactivación de Hitboxes.
+## Funciona mejor si es hijo del personaje.
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_MeleeWeapon
 extends Node2D
-const _tool_context = "RuichisLab/Nodos"
 
-## Acción del Input Map para atacar.
+# --- CONFIGURACIÓN ---
+
+## Nombre de la acción en el Input Map (ej: "ui_accept" o "attack").
 @export var accion_ataque: String = "ui_accept"
-## Referencia al área de daño (NC_Hitbox).
+
+## Nodo Hitbox que se activará durante el ataque.
 @export var hitbox: Area2D 
-## Duración de la fase activa del ataque.
-@export var tiempo_ataque: float = 0.2 
-## Tiempo de espera entre ataques.
+
+## Duración activa de la Hitbox (segundos).
+@export var tiempo_activo: float = 0.2
+
+## Tiempo total antes de poder atacar de nuevo (segundos).
 @export var cooldown: float = 0.5
-## Nombre de la animación a reproducir.
+
+## Nombre de la animación a reproducir en el AnimatedSprite2D del padre.
 @export var animacion_ataque: String = "attack"
-## Sonido al atacar.
+
+## Nombre del sonido a reproducir (vía AudioManager).
 @export var sonido_ataque: String = "swing"
 
+# Estado interno
 var puede_atacar: bool = true
 var sprite: AnimatedSprite2D
+var _timer_cooldown: Timer
 
-func _get_sound_manager():
-	if Engine.has_singleton("SoundManager"):
-		return Engine.get_singleton("SoundManager")
-	if Engine.has_singleton("AudioManager"):
-		return Engine.get_singleton("AudioManager")
-	if is_inside_tree():
-		return get_tree().root.get_node_or_null("SoundManager") or get_tree().root.get_node_or_null("AudioManager")
-	return null
-
-func _ready():
-	# Buscar sprite en el padre (Jugador)
-	var padre = get_parent()
-	for child in padre.get_children():
-		if child is AnimatedSprite2D:
-			sprite = child
-
-			break
+func _ready() -> void:
+	# Buscar sprite en el padre
+	if get_parent():
+		for child in get_parent().get_children():
+			if child is AnimatedSprite2D:
+				sprite = child
+				break
 		
 	if hitbox:
-		hitbox.monitorable = false # Desactivado por defecto
+		hitbox.monitorable = false
 		hitbox.monitoring = false
 
-func _process(delta):
+	_timer_cooldown = Timer.new()
+	_timer_cooldown.one_shot = true
+	add_child(_timer_cooldown)
+
+func _process(_delta: float) -> void:
 	if puede_atacar and Input.is_action_just_pressed(accion_ataque):
 		atacar()
 
-func atacar():
+func atacar() -> void:
 	puede_atacar = false
 	
-	print("Ataque iniciado!")
-	
-	var sm = _get_sound_manager()
-	if sm:
-		if sm.has_method("play_sfx"):
-			sm.play_sfx(sonido_ataque)
-		elif sm.has_method("reproducir_sonido") and typeof(sonido_ataque) == TYPE_OBJECT:
-			sm.reproducir_sonido(sonido_ataque)
+	# Sonido (Corregido: usar 'reproducir_sfx' en español)
+	if sonido_ataque != "" and Engine.has_singleton("AudioManager"):
+		Engine.get_singleton("AudioManager").call("reproducir_sfx", sonido_ataque)
 		
-	if sprite and sprite.sprite_frames.has_animation(animacion_ataque):
+	# Animación
+	if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation(animacion_ataque):
 		sprite.play(animacion_ataque)
 		
 	# Activar Hitbox
@@ -79,19 +68,28 @@ func atacar():
 		hitbox.monitorable = true
 		hitbox.monitoring = true
 		
-	# Esperar duración del ataque
-	await get_tree().create_timer(tiempo_ataque).timeout
+	# Esperar fin fase activa
+	await get_tree().create_timer(tiempo_activo).timeout
 	
-	# Desactivar Hitbox
-	if hitbox:
+	# Desactivar Hitbox (si aún existe)
+	if is_instance_valid(hitbox):
 		hitbox.monitorable = false
 		hitbox.monitoring = false
 		
-	# Esperar cooldown
-	await get_tree().create_timer(cooldown - tiempo_ataque).timeout
+	# Cooldown restante
+	var tiempo_restante = max(0, cooldown - tiempo_activo)
+	if tiempo_restante > 0:
+		_timer_cooldown.start(tiempo_restante)
+		await _timer_cooldown.timeout
 	
 	puede_atacar = true
 	
-	# Volver a idle si no se está moviendo (opcional, depende del controller)
+	# Reset animación a idle si no se ha cambiado ya
 	if sprite and sprite.animation == animacion_ataque:
-		sprite.play("idle")
+		sprite.play("idle") # Asume que existe "idle"
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings: PackedStringArray = []
+	if not hitbox:
+		warnings.append("Debes asignar un nodo Hitbox para que el ataque haga daño.")
+	return warnings

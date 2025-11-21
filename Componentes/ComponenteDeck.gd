@@ -1,61 +1,89 @@
-class_name ComponenteDeck
+# Archivo: addons/no_code_godot_plugin/Componentes/ComponenteDeck.gd
+## Gestor del Mazo y Robo de cartas.
+##
+## **Uso:** Gestiona la lógica de robar, barajar y el descarte.
+## **Requisito:** Nodo simple. Requiere referencias a `RL_Hand` y una escena de carta.
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_Deck
 extends Node
-const _tool_context = "RuichisLab/Nodos"
 
-## Lista de datos de cartas que componen el mazo.
+# --- CONFIGURACIÓN ---
+
+## Lista inicial de recursos (ResourceCardData) que componen el mazo.
 @export var cartas_iniciales: Array[ResourceCardData] = []
 
-## Referencia a la mano donde se instanciarán las cartas.
-@export var mano_objetivo: ComponenteHand
+## Referencia al nodo `RL_Hand` donde aparecerán las cartas robadas.
+@export var mano_objetivo: Control
 
-## Escena base de la carta visual (debe tener ComponenteCard).
-@export var carta_scene: PackedScene
+## PackedScene de la carta visual (debe contener `RL_Card`).
+@export var escena_carta: PackedScene
 
+## Si es true, baraja automáticamente al iniciar.
+@export var barajar_al_inicio: bool = true
+
+# --- ESTADO ---
 var mazo_actual: Array[ResourceCardData] = []
 var descarte: Array[ResourceCardData] = []
 
-func _ready():
+func _ready() -> void:
+	reiniciar_mazo()
+
+func reiniciar_mazo() -> void:
 	mazo_actual = cartas_iniciales.duplicate()
-	barajar()
+	descarte.clear()
+	if barajar_al_inicio:
+		barajar()
 
-func barajar():
+func barajar() -> void:
 	mazo_actual.shuffle()
-	print("Mazo barajado. Cartas restantes: ", mazo_actual.size())
+	# print("Mazo barajado. Cartas: ", mazo_actual.size())
 
-func robar_carta():
+## Roba una carta y la instancia en la mano.
+func robar_carta() -> void:
 	if mazo_actual.is_empty():
 		if descarte.is_empty():
-			print("No quedan cartas en el mazo ni en el descarte.")
+			print("Deck vacío: No quedan cartas.")
 			return
 		else:
-			reciclar_descarte()
+			_reciclar_descarte()
 	
 	var data = mazo_actual.pop_back()
-	_instanciar_carta(data)
+	_instanciar_carta_en_mano(data)
 
-func _instanciar_carta(data: ResourceCardData):
-	if not mano_objetivo or not carta_scene:
-		push_error("ComponenteDeck: Falta asignar 'mano_objetivo' o 'carta_scene'.")
+func _instanciar_carta_en_mano(data: ResourceCardData) -> void:
+	if not mano_objetivo:
+		push_error("RL_Deck: No hay mano_objetivo asignada.")
+		return
+	if not escena_carta:
+		push_error("RL_Deck: No hay escena_carta asignada.")
 		return
 		
-	var nueva_carta = carta_scene.instantiate()
-	if nueva_carta.has_method("configurar"):
-		nueva_carta.configurar(data)
-	elif "id_carta" in nueva_carta: # Fallback a propiedades directas
-		nueva_carta.id_carta = data.id
-		# Asignar otras props si existen
+	var instancia = escena_carta.instantiate()
 	
-	mano_objetivo.add_child(nueva_carta)
+	# Configurar datos
+	if instancia.has_method("configurar"):
+		instancia.configurar(data)
+	elif instancia is RL_Card:
+		instancia.data_carta = data
+	elif instancia.has_node("RL_Card"): # Si la escena tiene RL_Card como hijo
+		instancia.get_node("RL_Card").configurar(data)
 
-func reciclar_descarte():
+	mano_objetivo.add_child(instancia)
+
+func _reciclar_descarte() -> void:
+	# print("Reciclando descarte...")
 	mazo_actual.append_array(descarte)
 	descarte.clear()
 	barajar()
 
+## Añade una carta al descarte (usar cuando se juega una carta).
+func descartar(data: ResourceCardData) -> void:
+	descarte.append(data)
+
 func _get_configuration_warnings() -> PackedStringArray:
-	var warnings = []
+	var warnings: PackedStringArray = []
 	if not mano_objetivo:
-		warnings.append("Asigna un nodo 'ComponenteHand' en 'mano_objetivo' para saber dónde poner las cartas robadas.")
-	if not carta_scene:
-		warnings.append("Asigna una escena con 'ComponenteCard' en 'carta_scene' para poder instanciar cartas.")
+		warnings.append("Asigna una 'Mano Objetivo' (Control/RL_Hand).")
+	if not escena_carta:
+		warnings.append("Asigna una 'Escena Carta' (.tscn).")
 	return warnings

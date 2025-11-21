@@ -1,104 +1,103 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponenteVirtualJoystick.gd
-## Joystick virtual para móviles.
-##
-## **Uso:** Añade este componente para crear controles táctiles.
-## Genera inputs de movimiento para dispositivos móviles.
-##
-## **Casos de uso:**
-## - Controles móviles
-## - Joystick táctil
-## - Controles de tablet
-##
-## **Requisito:** Debe heredar de Control.
-class_name ComponenteVirtualJoystick
+## Joystick virtual para controles táctiles.
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_VirtualJoystick
 extends Control
-const _tool_context = "RuichisLab/Nodos"
 
-# Joystick Virtual para móviles.
-# Simula acciones de Input Map (ui_left, ui_right, etc.) o devuelve un Vector2.
+# --- CONFIGURACIÓN ---
 
-## Acción del Input Map para mover a la izquierda.
+@export_group("Input Map")
 @export var accion_izquierda: String = "ui_left"
-## Acción del Input Map para mover a la derecha.
 @export var accion_derecha: String = "ui_right"
-## Acción del Input Map para mover arriba.
 @export var accion_arriba: String = "ui_up"
-## Acción del Input Map para mover abajo.
 @export var accion_abajo: String = "ui_down"
 
-## Color del fondo del joystick.
+@export_group("Visuales")
 @export var color_base: Color = Color(0, 0, 0, 0.5)
-## Color de la palanca móvil.
 @export var color_palanca: Color = Color(1, 1, 1, 0.8)
-## Radio del joystick en píxeles.
 @export var radio_base: float = 100.0
 @export var radio_palanca: float = 40.0
 
-var touch_index: int = -1
-var centro: Vector2
-var pos_palanca: Vector2
-var output: Vector2 = Vector2.ZERO
+@export_group("Comportamiento")
+## Si es true, el joystick aparece donde tocas.
+@export var modo_dinamico: bool = false
 
-func _ready():
-	# Asegurar que no bloquee el mouse
+## Zona muerta (0.0 a 1.0).
+@export var zona_muerta: float = 0.1
+
+# --- ESTADO ---
+var _indice_toque: int = -1
+var _pos_base: Vector2
+var _pos_palanca_rel: Vector2 = Vector2.ZERO
+var _salida: Vector2 = Vector2.ZERO
+var _pos_original: Vector2
+
+func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	_pos_base = size / 2
+	_pos_original = position
 
-func _gui_input(event):
-	if event is InputEventScreenTouch:
-		if event.pressed:
-			if touch_index == -1 and event.position.distance_to(size / 2) < radio_base:
-				touch_index = event.index
-				_actualizar_palanca(event.position)
-		elif event.index == touch_index:
-			touch_index = -1
+func _gui_input(evento: InputEvent) -> void:
+	if evento is InputEventScreenTouch:
+		if evento.pressed:
+			if _indice_toque == -1:
+				if modo_dinamico or evento.position.distance_to(_pos_base) < radio_base:
+					_indice_toque = evento.index
+					if modo_dinamico:
+						_pos_base = evento.position
+						queue_redraw()
+					_actualizar_palanca(evento.position)
+		elif evento.index == _indice_toque:
+			_indice_toque = -1
 			_reset_palanca()
 			
-	elif event is InputEventScreenDrag:
-		if event.index == touch_index:
-			_actualizar_palanca(event.position)
+	elif evento is InputEventScreenDrag:
+		if evento.index == _indice_toque:
+			_actualizar_palanca(evento.position)
 
-func _draw():
-	var centro_rect = size / 2
-	draw_circle(centro_rect, radio_base, color_base)
-	draw_circle(centro_rect + pos_palanca, radio_palanca, color_palanca)
+func _draw() -> void:
+	if _indice_toque == -1 and modo_dinamico: return
+	draw_circle(_pos_base, radio_base, color_base)
+	draw_circle(_pos_base + _pos_palanca_rel, radio_palanca, color_palanca)
 
-func _actualizar_palanca(pos_touch: Vector2):
-	var centro_rect = size / 2
-	var delta = pos_touch - centro_rect
-	
+func _actualizar_palanca(pos_toque: Vector2) -> void:
+	var delta = pos_toque - _pos_base
 	if delta.length() > radio_base:
 		delta = delta.normalized() * radio_base
 	
-	pos_palanca = delta
-	output = pos_palanca / radio_base
+	_pos_palanca_rel = delta
+	var salida_cruda = _pos_palanca_rel / radio_base
+
+	if salida_cruda.length() < zona_muerta:
+		_salida = Vector2.ZERO
+	else:
+		_salida = salida_cruda
+
 	queue_redraw()
 	_simular_input()
 
-func _reset_palanca():
-	pos_palanca = Vector2.ZERO
-	output = Vector2.ZERO
+func _reset_palanca() -> void:
+	_pos_palanca_rel = Vector2.ZERO
+	_salida = Vector2.ZERO
 	queue_redraw()
 	_liberar_input()
 
-func _simular_input():
-	# Simular pulsaciones de teclas para que funcione con CharacterBody2D existente
-	if output.x < -0.5: Input.action_press(accion_izquierda)
-	else: Input.action_release(accion_izquierda)
-	
-	if output.x > 0.5: Input.action_press(accion_derecha)
-	else: Input.action_release(accion_derecha)
-	
-	if output.y < -0.5: Input.action_press(accion_arriba)
-	else: Input.action_release(accion_arriba)
-	
-	if output.y > 0.5: Input.action_press(accion_abajo)
-	else: Input.action_release(accion_abajo)
+func _simular_input() -> void:
+	_actualizar_accion(accion_izquierda, _salida.x < -zona_muerta)
+	_actualizar_accion(accion_derecha, _salida.x > zona_muerta)
+	_actualizar_accion(accion_arriba, _salida.y < -zona_muerta)
+	_actualizar_accion(accion_abajo, _salida.y > zona_muerta)
 
-func _liberar_input():
-	Input.action_release(accion_izquierda)
-	Input.action_release(accion_derecha)
-	Input.action_release(accion_arriba)
-	Input.action_release(accion_abajo)
+func _actualizar_accion(accion: String, presionado: bool) -> void:
+	if accion == "": return
+	if presionado: Input.action_press(accion)
+	else: Input.action_release(accion)
 
-func get_output() -> Vector2:
-	return output
+func _liberar_input() -> void:
+	if accion_izquierda != "": Input.action_release(accion_izquierda)
+	if accion_derecha != "": Input.action_release(accion_derecha)
+	if accion_arriba != "": Input.action_release(accion_arriba)
+	if accion_abajo != "": Input.action_release(accion_abajo)
+
+func obtener_salida() -> Vector2:
+	return _salida

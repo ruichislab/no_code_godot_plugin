@@ -1,69 +1,64 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponenteSavePoint.gd
-## Punto de guardado manual.
+## Punto de control que permite guardar la partida.
 ##
-## **Uso:** Añade este componente para crear puntos donde el jugador puede guardar.
-## Se integra con el SistemaGuardado automáticamente.
-##
-## **Casos de uso:**
-## - Hogueras (Dark Souls)
-## - Cabinas telefónicas
-## - Camas de descanso
-## - Estatuas de guardado
-##
-## **Requisito:** Debe ser hijo de un Area2D. Requiere SistemaGuardado activo.
-@icon("res://icon.svg")
-class_name ComponenteSavePoint
+## **Uso:** Hogueras, estatuas o puntos de control.
+## Puede configurarse para guardar al tocar o al interactuar.
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_SavePoint
 extends Area2D
-const _tool_context = "RuichisLab/Nodos"
 
+# --- CONFIGURACIÓN ---
+
+## Si es true, guarda automáticamente al tocar el área.
+@export var guardar_al_tocar: bool = false
+
+## Si es true, restaura la salud del jugador al guardar.
 @export var restaurar_salud: bool = true
+
+## Sonido de confirmación.
 @export var sonido_guardar: String = "save_game"
 
-func _ready():
-	# Se puede activar por colisión o interacción
-	pass
+## Slot de guardado por defecto.
+@export var slot: int = 1
 
-# Llamado por ComponenteInteraccion
-func interactuar():
+func _ready() -> void:
+	if not body_entered.is_connected(_on_body_entered):
+		body_entered.connect(_on_body_entered)
+
+func _on_body_entered(body: Node2D) -> void:
+	if guardar_al_tocar and (body.is_in_group("jugador") or body.name == "Jugador"):
+		guardar()
+
+## Método público para guardar (conectar a RL_Interaccion).
+func interactuar(_actor: Node = null) -> void:
 	guardar()
 
-func guardar():
-	print("Guardando partida...")
+func guardar() -> void:
+	# print("Guardando partida en Slot %d..." % slot)
 	
-	var sg = _get_save_system()
-	if sg:
-		sg.guardar_juego()
+	# 1. Guardar
+	if Engine.has_singleton("SaveManager"):
+		Engine.get_singleton("SaveManager").call("guardar_juego", slot)
 	
-	var gm = _get_game_manager()
-	if restaurar_salud and gm and gm.jugador:
-		if gm.jugador.has_node("Estadisticas"):
-			gm.jugador.get_node("Estadisticas").curar_completo()
+	# 2. Restaurar Salud
+	if restaurar_salud and Engine.has_singleton("GameManager"):
+		var gm = Engine.get_singleton("GameManager")
+		if gm.jugador and is_instance_valid(gm.jugador):
+			var stats = gm.jugador.get_node_or_null("Estadisticas")
+			if stats and stats.has_method("curar_completo"):
+				stats.curar_completo()
 			
-	var sm = _get_sound_manager()
-	if sm:
-		# sm.play_sfx(sonido_guardar)
-		pass
+	# 3. Feedback Auditivo
+	if sonido_guardar != "" and Engine.has_singleton("AudioManager"):
+		Engine.get_singleton("AudioManager").call("play_sfx", sonido_guardar)
 		
-	var ftm = _get_floating_text_manager()
-	if ftm:
-		ftm.mostrar_texto("¡Partida Guardada!", global_position + Vector2(0, -50), Color.GREEN)
+	# 4. Feedback Visual
+	if Engine.has_singleton("FloatingTextManager"):
+		Engine.get_singleton("FloatingTextManager").call("mostrar_texto", "¡Partida Guardada!", global_position + Vector2(0, -50), Color.GREEN)
 
-func _get_save_system() -> Node:
-	if Engine.has_singleton("SistemaGuardado"): return Engine.get_singleton("SistemaGuardado")
-	if is_inside_tree(): return get_tree().root.get_node_or_null("SistemaGuardado")
-	return null
-
-func _get_game_manager() -> Node:
-	if Engine.has_singleton("GameManager"): return Engine.get_singleton("GameManager")
-	if is_inside_tree(): return get_tree().root.get_node_or_null("GameManager")
-	return null
-
-func _get_sound_manager() -> Node:
-	if Engine.has_singleton("SoundManager"): return Engine.get_singleton("SoundManager")
-	if is_inside_tree(): return get_tree().root.get_node_or_null("SoundManager")
-	return null
-
-func _get_floating_text_manager() -> Node:
-	if Engine.has_singleton("FloatingTextManager"): return Engine.get_singleton("FloatingTextManager")
-	if is_inside_tree(): return get_tree().root.get_node_or_null("FloatingTextManager")
-	return null
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings: PackedStringArray = []
+	if not Engine.has_singleton("SaveManager") and not Engine.is_editor_hint():
+		# warnings.append("Se requiere el Autoload 'SaveManager' para funcionar.")
+		pass
+	return warnings

@@ -1,59 +1,66 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponentePauseListener.gd
-## Detecta cuando el juego se pausa/despausa.
+## Gestiona la visualización de menús de pausa y responde a eventos de pausa.
 ##
-## **Uso:** Añade este nodo para ejecutar acciones cuando el jugador pausa el juego.
-##
-## **Casos de uso:**
-## - Mostrar/ocultar menú de pausa
-## - Detener música de fondo
-## - Mostrar consejos durante la pausa
-## - Guardar progreso automáticamente
-##
-## **Nota:** Escucha la señal 'game_paused' del EventBus.
-@icon("res://icon.svg")
-class_name ComponentePauseListener
+## **Uso:** Asigna un Control (UI de pausa) y este componente lo mostrará/ocultará automáticamente.
+## **Requisito:** Conecta con las señales `juego_pausado` y `juego_reanudado` del GameManager.
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_PauseListener
 extends Node
-const _tool_context = "RuichisLab/Nodos"
 
-@export var pantalla_pausa: Control # Nodo UI a mostrar
+# --- CONFIGURACIÓN ---
+
+## Nodo UI (Control) que contiene el menú de pausa.
+@export var pantalla_pausa: Control
+
+## Sonido al pausar.
 @export var sonido_pausa: String = "pause_on"
+
+## Sonido al reanudar.
 @export var sonido_reanudar: String = "pause_off"
 
-func _ready():
-	process_mode = Node.PROCESS_MODE_ALWAYS # Debe funcionar en pausa
+## Tecla (Input Action) que alterna la pausa (ej: "ui_cancel", "pause").
+@export var accion_toggle: String = "ui_cancel"
+
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS # Esencial para funcionar durante la pausa
 	
-	var gm = _get_game_manager()
-	if gm:
-		gm.juego_pausado.connect(_on_juego_pausado)
+	if Engine.has_singleton("GameManager"):
+		var gm = Engine.get_singleton("GameManager")
+		if gm.has_signal("juego_pausado"):
+			gm.juego_pausado.connect(_on_pausado)
+		if gm.has_signal("juego_reanudado"):
+			gm.juego_reanudado.connect(_on_reanudado)
 		
 	if pantalla_pausa:
-		pantalla_pausa.visible = false
+		pantalla_pausa.visible = get_tree().paused
 
-func _on_juego_pausado(esta_pausado: bool):
-	if pantalla_pausa:
-		pantalla_pausa.visible = esta_pausado
-		
-	var sm = _get_sound_manager()
-	if sm:
-		if esta_pausado:
-			# sm.play_sfx(sonido_pausa)
-			pass
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed(accion_toggle):
+		alternar_pausa()
+
+func alternar_pausa() -> void:
+	if Engine.has_singleton("GameManager"):
+		Engine.get_singleton("GameManager").toggle_pausa()
+	else:
+		# Fallback simple si no hay GM
+		get_tree().paused = !get_tree().paused
+		if get_tree().paused:
+			_on_pausado()
 		else:
-			# sm.play_sfx(sonido_reanudar)
-			pass
+			_on_reanudado()
 
-# Conectar esto a un botón "Reanudar" en la UI
-func reanudar():
-	var gm = _get_game_manager()
-	if gm:
-		gm.alternar_pausa()
+func _on_pausado() -> void:
+	if pantalla_pausa: pantalla_pausa.visible = true
+	if sonido_pausa != "" and Engine.has_singleton("AudioManager"):
+		Engine.get_singleton("AudioManager").call("play_sfx", sonido_pausa)
 
-func _get_game_manager() -> Node:
-	if Engine.has_singleton("GameManager"): return Engine.get_singleton("GameManager")
-	if is_inside_tree(): return get_tree().root.get_node_or_null("GameManager")
-	return null
+func _on_reanudado() -> void:
+	if pantalla_pausa: pantalla_pausa.visible = false
+	if sonido_reanudar != "" and Engine.has_singleton("AudioManager"):
+		Engine.get_singleton("AudioManager").call("play_sfx", sonido_reanudar)
 
-func _get_sound_manager() -> Node:
-	if Engine.has_singleton("SoundManager"): return Engine.get_singleton("SoundManager")
-	if is_inside_tree(): return get_tree().root.get_node_or_null("SoundManager")
-	return null
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings: PackedStringArray = []
+	if not pantalla_pausa:
+		warnings.append("Asigna un nodo Control para mostrar cuando el juego se pause.")
+	return warnings

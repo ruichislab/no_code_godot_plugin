@@ -1,37 +1,48 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponenteInputListener.gd
-## Escucha inputs del jugador y ejecuta acciones.
+## Detecta entradas del usuario (Input Map) y emite señales.
 ##
-## **Uso:** Añade este nodo para detectar cuando se presiona una tecla específica
-## y ejecutar acciones personalizadas sin escribir código.
-##
-## **Casos de uso:**
-## - Abrir menús con teclas (ESC, Tab, I)
-## - Activar habilidades especiales (Q, E, R)
-## - Interacciones contextuales (E para interactuar)
-## - Atajos de teclado personalizados
-##
-## **Nota:** Usa nombres de acciones definidas en Project Settings > Input Map.
-@icon("res://icon.svg")
-class_name ComponenteInputListener
+## **Uso:** Ideal para disparar eventos, abrir menús o activar habilidades sin programar.
+## Requiere que la acción esté definida en Proyecto > Configuración del Proyecto > Mapa de Entradas.
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_InputListener
 extends Node
-const _tool_context = "RuichisLab/Nodos"
 
-signal presionado()
-signal soltado()
-signal mantenido(delta)
+# --- CONFIGURACIÓN ---
 
+## Nombre de la acción definida en el Input Map (ej: "ui_accept", "saltar").
 @export var accion: String = "ui_accept"
+
+## Si es true, procesa la entrada. Si es false, ignora todo.
 @export var activo: bool = true
 
-func _process(delta):
+## Si es true, consume el evento para que no se propague a otros nodos (usando _unhandled_input).
+@export var consumir_evento: bool = false
+
+# --- SEÑALES ---
+signal presionado
+signal soltado
+signal mantenido(delta: float)
+
+func _process(delta: float) -> void:
 	if not activo: return
 	
-	if Input.is_action_just_pressed(accion):
-		emit_signal("presionado")
-		print("InputListener: %s presionado" % accion)
-		
-	if Input.is_action_just_released(accion):
-		emit_signal("soltado")
-		
 	if Input.is_action_pressed(accion):
 		emit_signal("mantenido", delta)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not activo: return
+
+	if event.is_action(accion):
+		if event.is_pressed() and not event.is_echo():
+			emit_signal("presionado")
+			if consumir_evento: get_viewport().set_input_as_handled()
+
+		elif event.is_released():
+			emit_signal("soltado")
+			if consumir_evento: get_viewport().set_input_as_handled()
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings: PackedStringArray = []
+	if not InputMap.has_action(accion):
+		warnings.append("La acción '%s' no existe en el Input Map del proyecto." % accion)
+	return warnings

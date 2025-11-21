@@ -12,9 +12,9 @@
 ## - Cambios de nivel o teletransporte
 ##
 ## **Requisito:** Debe ser hijo de un Area2D.
-class_name ComponenteTrigger
+@icon("res://addons/no_code_godot_plugin/deck_icon.png") # Placeholder, se actualizará si hay iconos específicos
+class_name RL_Trigger
 extends Area2D
-const _tool_context = "RuichisLab/Nodos"
 
 # --- CONFIGURACIÓN ---
 
@@ -30,21 +30,28 @@ const _tool_context = "RuichisLab/Nodos"
 ## Delay en segundos antes de ejecutar las acciones.
 @export var delay: float = 0.0
 
+## Si es true, solo se activa con el nodo Jugador (debe estar en grupo 'jugador' o llamarse 'Jugador').
+@export var solo_jugador: bool = true
+
 # --- ESTADO INTERNO ---
 var _ya_ejecutado: bool = false
 
-func _ready():
-	# Conectar señal de entrada de cuerpo
-	body_entered.connect(_on_body_entered)
+func _ready() -> void:
+	# Conectar señal de entrada de cuerpo de forma segura
+	if not body_entered.is_connected(_on_body_entered):
+		body_entered.connect(_on_body_entered)
 
-func _on_body_entered(body: Node2D):
-	# Filtrar: Por defecto reacciona al jugador.
-	# Se podría expandir para filtrar por grupos específicos.
-	if body.is_in_group("jugador") or body.name == "Jugador":
+func _on_body_entered(body: Node2D) -> void:
+	if solo_jugador:
+		# Filtrar: Por defecto reacciona al jugador.
+		if body.is_in_group("jugador") or body.name == "Jugador":
+			activar(body)
+	else:
+		# Si no es solo jugador, activamos con cualquiera (cuidado con performance)
 		activar(body)
 
 ## Ejecuta manualmente el trigger.
-func activar(actor: Node = null):
+func activar(actor: Node = null) -> void:
 	if _ya_ejecutado and una_sola_vez: return
 	
 	if probabilidad < 1.0 and randf() > probabilidad:
@@ -56,7 +63,7 @@ func activar(actor: Node = null):
 	if delay > 0:
 		await get_tree().create_timer(delay).timeout
 		
-	print("Trigger activado por: ", actor.name if actor else "Nadie")
+	# print("Trigger activado por: ", actor.name if actor else "Nadie")
 	
 	for accion in acciones:
 		# Duck typing: Verificar si el recurso tiene el método 'ejecutar'
@@ -64,7 +71,18 @@ func activar(actor: Node = null):
 			accion.ejecutar(actor)
 
 func _get_configuration_warnings() -> PackedStringArray:
-	var warnings = []
+	var warnings: PackedStringArray = []
 	if acciones.is_empty():
 		warnings.append("El Trigger no tiene ninguna acción asignada. No hará nada al activarse.")
+
+	# Validar colisión
+	var tiene_colision = false
+	for child in get_children():
+		if child is CollisionShape2D or child is CollisionPolygon2D:
+			tiene_colision = true
+			break
+
+	if not tiene_colision:
+		warnings.append("Este Trigger necesita un CollisionShape2D hijo para detectar entradas.")
+
 	return warnings

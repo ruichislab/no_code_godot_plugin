@@ -1,53 +1,54 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponenteTeleporter.gd
-## Teletransportador a otra posición.
+## Teletransporta al cuerpo que entra a la posición de un nodo destino (dentro de la misma escena).
 ##
-## **Uso:** Añade este componente para crear teletransportadores.
-## Mueve al jugador a otra posición instantáneamente.
-##
-## **Casos de uso:**
-## - Portales
-## - Teletransportadores
-## - Trampas de caída
-## - Atajos secretos
-##
-## **Requisito:** Debe ser hijo de un Area2D.
-@icon("res://icon.svg")
-class_name ComponenteTeleporter
+## **Uso:** Atajos, trampas de caída o portales locales.
+## **Requisito:** Hijo de Area2D.
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_Teleporter
 extends Area2D
-const _tool_context = "RuichisLab/Nodos"
 
+# --- CONFIGURACIÓN ---
+
+## Nodo destino (Marker2D o cualquier Node2D).
 @export var destino: Node2D
+
+## Sonido al teletransportar.
 @export var sonido_teleport: String = "teleport"
 
-func _ready():
-	body_entered.connect(_on_body_entered)
+## Resetear velocidad al teletransportar (útil para trampas de caída).
+@export var resetear_velocidad: bool = true
 
-func _get_sound_manager():
-	if Engine.has_singleton("SoundManager"):
-		return Engine.get_singleton("SoundManager")
-	if Engine.has_singleton("AudioManager"):
-		return Engine.get_singleton("AudioManager")
-	if is_inside_tree():
-		return get_tree().root.get_node_or_null("SoundManager") or get_tree().root.get_node_or_null("AudioManager")
-	return null
+func _ready() -> void:
+	if not body_entered.is_connected(_on_body_entered):
+		body_entered.connect(_on_body_entered)
 
-func _on_body_entered(body):
+func _on_body_entered(body: Node2D) -> void:
 	if not destino:
-		push_warning("NC_Teleporter: No tiene destino asignado.")
+		push_warning("RL_Teleporter: No tiene destino asignado.")
 		return
 		
 	if body is Node2D:
-		# Reproducir sonido
-		var sm = _get_sound_manager()
-		if sm:
-			if sm.has_method("play_sfx"):
-				sm.play_sfx(sonido_teleport)
-			elif sm.has_method("reproducir_sonido") and typeof(sonido_teleport) == TYPE_OBJECT:
-				sm.reproducir_sonido(sonido_teleport)
+		# Sonido
+		if sonido_teleport != "" and Engine.has_singleton("AudioManager"):
+			Engine.get_singleton("AudioManager").call("play_sfx", sonido_teleport)
 			
-		# Teletransportar
+		# Teletransportar (usar deferred para seguridad física)
 		body.global_position = destino.global_position
 		
 		# Resetear velocidad si es físico
-		if "velocity" in body:
+		if resetear_velocidad and "velocity" in body:
 			body.velocity = Vector2.ZERO
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings: PackedStringArray = []
+	if not destino:
+		warnings.append("Asigna un nodo 'Destino' para saber a dónde teletransportar.")
+
+	var tiene_colision = false
+	for child in get_children():
+		if child is CollisionShape2D or child is CollisionPolygon2D:
+			tiene_colision = true
+			break
+	if not tiene_colision:
+		warnings.append("Se requiere un CollisionShape2D hijo.")
+	return warnings

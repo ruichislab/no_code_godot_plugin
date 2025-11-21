@@ -1,84 +1,84 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponenteInventoryGrid.gd
-## Grid visual del inventario.
+## Grid visual que muestra el contenido del inventario.
 ##
-## **Uso:** Añade este componente para mostrar el inventario en pantalla.
-## Se actualiza automáticamente cuando cambia el inventario.
-##
-## **Casos de uso:**
-## - Inventario del jugador
-## - Tiendas
-## - Cofres
-## - Almacenes
-##
-## **Requisito:** Debe heredar de GridContainer. Requiere InventarioGlobal.
-@icon("res://icon.svg")
-class_name ComponenteInventoryGrid
+## **Uso:** UI de Inventario. Se conecta automáticamente al InventarioGlobal.
+## **Requisito:** GridContainer.
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_InventoryGrid
 extends GridContainer
-const _tool_context = "RuichisLab/Nodos"
 
-## Escena base para cada slot (debe tener un script con set_item).
-@export var item_slot_scene: PackedScene 
-## Filtro opcional: "consumible", "equipable", o vacío para todo.
-@export var filtrar_por_tipo: String = "" 
-## Mostrar cantidad en el botón.
+# --- CONFIGURACIÓN ---
+
+## Escena que representa un slot (debe tener método `configurar(item, cantidad)`).
+@export var escena_slot: PackedScene
+
+## Filtro de tipo de item (opcional).
+@export var filtro_tipo: String = ""
+
+## Si es true, muestra el contador de cantidad en los slots.
 @export var mostrar_cantidad: bool = true
 
-func _ready():
-	# Conectar señal de actualización del inventario
-	# Conectar señal de actualización del inventario
-	var inv = _get_inventory_manager()
-	if inv:
-		inv.inventario_actualizado.connect(actualizar_grid)
+func _ready() -> void:
+	# Conectar señal de actualización
+	if Engine.has_singleton("InventarioGlobal"):
+		var inv = Engine.get_singleton("InventarioGlobal")
+		if inv.has_signal("inventario_actualizado"):
+			inv.inventario_actualizado.connect(actualizar_grid)
+
+		# Actualización inicial
 		actualizar_grid()
 
-func actualizar_grid():
+func actualizar_grid() -> void:
 	# Limpiar hijos
 	for child in get_children():
 		child.queue_free()
-		
-	var inv = _get_inventory_manager()
-	if not inv: return
 	
-	# Nota: InventarioGlobal no tiene 'obtener_todos_los_items' en la versión actual,
-	# usa 'inventario_principal'. Adaptando...
-	var items = []
-	if "inventario_principal" in inv:
-		for slot in inv.inventario_principal:
-			if not slot.is_empty():
-				# Reconstruir estructura esperada o usar slot directo
-				# Necesitamos el recurso estático para datos visuales
-				var datos_base = inv.obtener_datos_estaticos(slot.id_unico)
-				items.append({"recurso": datos_base, "cantidad": slot.cantidad})
+	if not Engine.has_singleton("InventarioGlobal"): return
+	var inv = Engine.get_singleton("InventarioGlobal")
 	
-	# var items = InventarioGlobal.obtener_todos_los_items()
+	# Obtener items (adaptado a la estructura del InventarioGlobal)
+	# Asumimos que el inventario expone una lista o método para obtener items
+	var items: Array = []
+	if inv.has_method("obtener_todos_los_items"):
+		items = inv.obtener_todos_los_items()
+	elif "items" in inv:
+		items = inv.items
 	
 	for item_data in items:
-		var recurso = item_data["recurso"]
-		var cantidad = item_data["cantidad"]
+		# Verificar estructura de datos (puede ser recurso o diccionario)
+		var recurso = item_data.get("recurso") if item_data is Dictionary else item_data
+		var cantidad = item_data.get("cantidad", 1) if item_data is Dictionary else 1
 		
-		# Filtro opcional
-		# if filtrar_por_tipo != "" and recurso.tipo != filtrar_por_tipo: continue
+		if not recurso: continue
 		
-		if item_slot_scene:
-			var slot = item_slot_scene.instantiate()
+		# Filtrar
+		if filtro_tipo != "" and recurso.get("tipo") != filtro_tipo:
+			continue
+
+		# Instanciar Slot
+		if escena_slot:
+			var slot = escena_slot.instantiate()
 			add_child(slot)
 			
-			# Intentar configurar el slot
 			if slot.has_method("configurar"):
 				slot.configurar(recurso, cantidad)
 			elif slot.has_method("set_item"):
 				slot.set_item(recurso)
+
+			# Configuración básica de botón si no es un script custom complejo
+			if slot is Button:
+				var nombre = recurso.get("nombre", "Item")
+				var icono = recurso.get("icono", null)
 				
-			# Si es un botón simple, poner icono y texto
-			elif slot is Button:
-				slot.text = recurso.nombre
-				if mostrar_cantidad:
-					slot.text += " x" + str(cantidad)
-				if recurso.icono:
-					slot.icon = recurso.icono
+				slot.text = nombre
+				if mostrar_cantidad and cantidad > 1:
+					slot.text += " x%d" % cantidad
+				if icono:
+					slot.icon = icono
 					slot.expand_icon = true
 
-func _get_inventory_manager() -> Node:
-	if Engine.has_singleton("InventarioGlobal"): return Engine.get_singleton("InventarioGlobal")
-	if is_inside_tree(): return get_tree().root.get_node_or_null("InventarioGlobal")
-	return null
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings: PackedStringArray = []
+	if not escena_slot:
+		warnings.append("Asigna una 'Escena Slot' para visualizar los items.")
+	return warnings

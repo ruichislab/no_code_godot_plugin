@@ -1,42 +1,52 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponenteBehaviorTree.gd
-## Árbol de comportamiento para IA avanzada.
+## Ejecutor de Árboles de Comportamiento (Behavior Tree).
 ##
-## **Uso:** Sistema de IA basado en árboles de decisión.
-## Más flexible que máquinas de estados para comportamientos complejos.
-##
-## **Casos de uso:**
-## - IA de estrategia
-## - Enemigos tácticos
-## - Compañeros aliados
-## - NPCs con múltiples prioridades
-##
-## **Nota:** Requiere definir nodos de comportamiento como Resources.
-@icon("res://icon.svg")
-class_name ComponenteBehaviorTree
+## **Uso:** Asigna un recurso `RL_BTNode` (usualmente un Selector o Secuencia raíz).
+## **Características:** Ejecuta la lógica de IA en intervalos regulares.
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_BehaviorTree
 extends Node
-const _tool_context = "RuichisLab/Nodos"
 
-@export var arbol: BTNode
+# --- CONFIGURACIÓN ---
+
+## Nodo raíz del árbol (Recurso).
+@export var arbol: RL_BTNode
+
+## Si es true, el árbol se ejecuta.
 @export var activo: bool = true
-@export var intervalo_tick: float = 0.1 # No ejecutar cada frame para rendimiento
 
-var blackboard: Blackboard
-var timer: Timer
+## Intervalo entre evaluaciones (segundos).
+## Aumentar para optimizar rendimiento en IAs lejanas.
+@export var intervalo_tick: float = 0.1
 
-func _ready():
-	blackboard = Blackboard.new()
-	
-	# Configurar timer
-	timer = Timer.new()
-	timer.wait_time = intervalo_tick
-	timer.autostart = true
-	timer.timeout.connect(_on_tick)
-	add_child(timer)
+# --- ESTADO ---
+var _pizarra: Dictionary = {} # Memoria compartida (Blackboard)
+var _timer: Timer
 
-func _on_tick():
+func _ready() -> void:
+	# Configurar timer interno
+	_timer = Timer.new()
+	_timer.wait_time = max(0.01, intervalo_tick)
+	_timer.autostart = activo
+	_timer.timeout.connect(_al_tick)
+	add_child(_timer)
+
+func _al_tick() -> void:
 	if not activo or not arbol: return
 	
-	arbol.tick(get_parent(), blackboard)
+	# Ejecutar árbol pasando el padre (Actor) y la memoria
+	arbol.tick(get_parent(), _pizarra)
 
-func get_blackboard() -> Blackboard:
-	return blackboard
+## Acceso directo a la memoria de la IA.
+func obtener_pizarra() -> Dictionary:
+	return _pizarra
+
+## Establece un valor en la memoria de la IA.
+func set_valor(clave: String, valor: Variant) -> void:
+	_pizarra[clave] = valor
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings: PackedStringArray = []
+	if not arbol:
+		warnings.append("Asigna un Recurso 'RL_BTNode' (ej: RL_BTSelector) en la propiedad 'Arbol'.")
+	return warnings

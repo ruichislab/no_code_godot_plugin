@@ -1,63 +1,63 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponenteInputRemapButton.gd
-## Botón para remapear controles.
+## Botón para reasignar teclas/controles.
 ##
-## **Uso:** Añade este componente para permitir personalizar controles.
-## Captura el input del jugador y lo asigna a una acción.
-##
-## **Casos de uso:**
-## - Menú de controles
-## - Personalización de teclas
-## - Soporte para gamepad
-##
-## **Requisito:** Debe heredar de Button.
-@icon("res://icon.svg")
-class_name ComponenteInputRemapButton
+## **Uso:** Al pulsar, espera el siguiente input y lo asigna a la acción.
+## **Requisito:** Button.
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_InputRemapButton
 extends Button
-const _tool_context = "RuichisLab/Nodos"
 
+# --- CONFIGURACIÓN ---
 @export var accion: String = "ui_accept"
-@export var texto_esperando: String = "Presiona una tecla..."
+@export var texto_espera: String = "Presiona tecla..."
 
-var esperando_input: bool = false
+# --- ESTADO ---
+var _esperando_input: bool = false
 
-func _ready():
-	actualizar_texto()
-	pressed.connect(_on_pressed)
+func _ready() -> void:
+	pressed.connect(_al_presionar)
+	_actualizar_etiqueta()
 
-func actualizar_texto():
+func _actualizar_etiqueta() -> void:
 	var eventos = InputMap.action_get_events(accion)
 	var tecla = "Ninguna"
+
 	if eventos.size() > 0:
 		var evento = eventos[0]
 		if evento is InputEventKey:
-			if typeof(OS) != TYPE_NIL and OS.has_method("get_keycode_string"):
-				tecla = OS.call("get_keycode_string", evento.physical_keycode)
-			else:
-				tecla = str(evento.physical_keycode)
+			tecla = OS.get_keycode_string(evento.physical_keycode)
 		elif evento is InputEventMouseButton:
-			tecla = "Mouse " + str(evento.button_index)
+			tecla = "Mouse %d" % evento.button_index
 		elif evento is InputEventJoypadButton:
-			tecla = "JoyBtn " + str(evento.button_index)
+			tecla = "JoyBtn %d" % evento.button_index
 			
 	text = "%s: %s" % [accion.capitalize(), tecla]
 
-func _on_pressed():
-	esperando_input = true
-	text = texto_esperando
-	release_focus() # Perder foco para no activar con Enter/Espacio inmediatamente
+func _al_presionar() -> void:
+	_esperando_input = true
+	text = texto_espera
+	release_focus()
 
-func _input(event):
-	if not esperando_input: return
+func _input(evento: InputEvent) -> void:
+	if not _esperando_input: return
 	
-	if event is InputEventKey or event is InputEventMouseButton or event is InputEventJoypadButton:
-		if event.is_pressed():
-			# Reasignar
+	# Filtrar eventos válidos
+	if evento is InputEventKey or evento is InputEventMouseButton or evento is InputEventJoypadButton:
+		if evento.is_pressed():
+			# Limpiar y asignar
 			InputMap.action_erase_events(accion)
-			InputMap.action_add_event(accion, event)
+			InputMap.action_add_event(accion, evento)
 			
-			esperando_input = false
-			actualizar_texto()
+			_esperando_input = false
+			_actualizar_etiqueta()
 			accept_event()
 			
-			# Guardar configuración (Opcional, requeriría un SettingsManager persistente)
-			# SettingsManager.guardar_inputs()
+			# Persistir
+			if Engine.has_singleton("SettingsManager"):
+				Engine.get_singleton("SettingsManager").call("guardar_ajustes")
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings: PackedStringArray = []
+	if not InputMap.has_action(accion):
+		warnings.append("La acción '%s' no existe en el InputMap." % accion)
+	return warnings

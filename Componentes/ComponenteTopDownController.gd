@@ -1,49 +1,52 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponenteTopDownController.gd
-## Controlador de movimiento top-down.
+## Controlador de movimiento top-down para CharacterBody2D.
 ##
-## **Uso:** Añade este componente para movimiento estilo Zelda/Hotline Miami.
-## Incluye aceleración, fricción y animaciones.
+## Provee movimiento suave en 8 direcciones con aceleración y fricción.
+## Puede controlar automáticamente las animaciones de un AnimatedSprite2D hijo.
 ##
 ## **Casos de uso:**
-## - Juegos estilo Zelda
-## - Twin-stick shooters
-## - RPGs de acción
-## - Juegos de supervivencia
-##
-## **Requisito:** El padre debe ser CharacterBody2D.
-class_name ComponenteTopDownController
+## - RPGs de acción (Zelda-like)
+## - Shooters
+## - Juegos de aventura
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_TopDownController
 extends Node
-const _tool_context = "RuichisLab/Nodos"
 
 ## Velocidad máxima en píxeles/segundo.
 @export var velocidad_maxima: float = 200.0
-## Aceleración para alcanzar la velocidad máxima.
+## Aceleración para alcanzar la velocidad máxima (px/s²).
 @export var aceleracion: float = 1500.0
-## Fricción para detenerse.
+## Fricción para detenerse (px/s²).
 @export var friccion: float = 1000.0
-## Si es true, busca un AnimatedSprite2D y cambia animaciones.
+## Si es true, busca un AnimatedSprite2D hermano y cambia animaciones automáticamente.
 @export var animar_sprite: bool = true
+## Nombre de la animación de caminar.
+@export var animacion_caminar: String = "walk"
+## Nombre de la animación de reposo.
+@export var animacion_reposo: String = "idle"
 
+# Referencias internas
 var padre: CharacterBody2D
 var sprite: AnimatedSprite2D
 
-func _ready():
+func _ready() -> void:
 	padre = get_parent() as CharacterBody2D
 	if not padre:
-		push_error("NC_TopDownController debe ser hijo de un CharacterBody2D.")
+		push_error("RL_TopDownController debe ser hijo de un CharacterBody2D.")
 		return
 		
 	if animar_sprite:
-		# Buscar AnimatedSprite2D
+		# Buscar AnimatedSprite2D en los hijos del padre (hermanos de este nodo)
 		for child in padre.get_children():
 			if child is AnimatedSprite2D:
 				sprite = child
 				break
 
-func _physics_process(delta):
+func _physics_process(delta: float) -> void:
 	if not padre: return
 	
-	var input_vector = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+	# Obtener input normalizado
+	var input_vector: Vector2 = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	
 	if input_vector != Vector2.ZERO:
 		# Acelerar
@@ -52,29 +55,32 @@ func _physics_process(delta):
 	else:
 		# Frenar
 		padre.velocity = padre.velocity.move_toward(Vector2.ZERO, friccion * delta)
+
+		# Volver a reposo si es necesario
 		if animar_sprite and sprite:
-			if sprite.animation.begins_with("walk") or sprite.animation.begins_with("run"):
-				sprite.play("idle") # O la animación de reposo correspondiente
+			if sprite.animation.begins_with(animacion_caminar):
+				sprite.play(animacion_reposo)
 	
 	padre.move_and_slide()
 
-func _actualizar_animacion(vector: Vector2):
+func _actualizar_animacion(vector: Vector2) -> void:
 	if not animar_sprite or not sprite: return
 	
-	# Lógica simple de 4 direcciones
-	var anim = "walk"
+	var anim: String = animacion_caminar
 	
-	if abs(vector.x) > abs(vector.y):
-		if vector.x > 0:
-			sprite.flip_h = false
-			# sprite.play(anim + "_right") # Si tienes animaciones separadas
-		else:
-			sprite.flip_h = true
-			# sprite.play(anim + "_left")
+	# Voltear sprite horizontalmente según dirección
+	if abs(vector.x) > 0:
+		sprite.flip_h = (vector.x < 0)
 	
-	# Si tienes animaciones específicas, descomenta esto:
-	# elif vector.y > 0: sprite.play(anim + "_down")
-	# else: sprite.play(anim + "_up")
+	# Lógica para animaciones direccionales específicas (opcional)
+	# if vector.y > 0: anim += "_down"
+	# elif vector.y < 0: anim += "_up"
 	
 	if sprite.animation != anim:
 		sprite.play(anim)
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings: PackedStringArray = []
+	if not get_parent() is CharacterBody2D:
+		warnings.append("Este nodo debe ser hijo de un CharacterBody2D para funcionar.")
+	return warnings

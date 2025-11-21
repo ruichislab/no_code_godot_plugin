@@ -1,88 +1,118 @@
 # Archivo: addons/no_code_godot_plugin/Autoloads/AudioManager.gd
-## Manager global para audio.
+## Manager global de audio profesional.
 ##
-## **Uso:** Autoload automático. Úsalo con `AudioManager.reproducir_sonido()`.
-##
-## **Funciones:**
-## - Reproducir efectos de sonido
-## - Reproducir/detener música
-## - Control de volumen
-## - Sistema de pooling para sonidos
-
+## **Características:**
+## - Pooling dinámico de reproductores SFX.
+## - Variación automática de tono y volumen.
+## - Música con transición suave (Crossfade).
+## - Buses de mezcla separados.
 extends Node
 
-const MAX_SOUND_PLAYERS = 16
+# --- CONFIGURACIÓN ---
+const MAX_REPRODUCTORES_SFX: int = 32
+const BUS_MAESTRO: String = "Master"
+const BUS_MUSICA: String = "Music"
+const BUS_SFX: String = "SFX"
 
-var music_player: AudioStreamPlayer
-var sound_players: Array[AudioStreamPlayer] = []
-var current_player_index: int = 0
+# --- ESTADO ---
+var _reproductor_musica_1: AudioStreamPlayer
+var _reproductor_musica_2: AudioStreamPlayer
+var _reproductor_activo: AudioStreamPlayer = null
 
-var master_volume: float = 1.0
-var music_volume: float = 0.7
-var sfx_volume: float = 1.0
+var _pool_sfx: Array[AudioStreamPlayer] = []
+var _indice_sfx: int = 0
 
-func _ready():
-	# Crear reproductor de música
-	music_player = AudioStreamPlayer.new()
-	music_player.bus = "Music"
-	add_child(music_player)
+var _interpolacion_musica: Tween
+
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
+	_crear_buses_si_no_existen()
 	
-	# Crear pool de reproductores de efectos
-	for i in MAX_SOUND_PLAYERS:
-		var player = AudioStreamPlayer.new()
-		player.bus = "SFX"
-		player.finished.connect(_on_sound_finished.bind(player))
-		add_child(player)
-		sound_players.append(player)
+	# Inicializar reproductores de música
+	_reproductor_musica_1 = AudioStreamPlayer.new()
+	_reproductor_musica_1.bus = BUS_MUSICA
+	add_child(_reproductor_musica_1)
 	
-	print("AudioManager: Inicializado con ", MAX_SOUND_PLAYERS, " canales de audio")
+	_reproductor_musica_2 = AudioStreamPlayer.new()
+	_reproductor_musica_2.bus = BUS_MUSICA
+	add_child(_reproductor_musica_2)
 
-## Reproduce un efecto de sonido.
-func reproducir_sonido(stream: AudioStream, volumen: float = 1.0):
-	if not stream:
-		push_warning("AudioManager: No se proporcionó un AudioStream")
+	# Inicializar pool de SFX
+	for i in range(MAX_REPRODUCTORES_SFX):
+		var p = AudioStreamPlayer.new()
+		p.bus = BUS_SFX
+		add_child(p)
+		_pool_sfx.append(p)
+
+	print("AudioManager: Inicializado (32 canales SFX, Transición Música).")
+
+## Reproduce un efecto de sonido con variación opcional.
+func reproducir_sfx(audio: AudioStream, vol_db: float = 0.0, tono: float = 1.0, variacion_tono: float = 0.1) -> void:
+	if not audio: return
+
+	var reproductor = _obtener_reproductor_libre()
+	
+	# Variación aleatoria
+	var tono_final = tono + randf_range(-variacion_tono, variacion_tono)
+	var vol_final = vol_db + randf_range(-2.0, 0.0)
+	
+	reproductor.stream = audio
+	reproductor.volume_db = vol_final
+	reproductor.pitch_scale = max(0.1, tono_final)
+	reproductor.play()
+
+## Reproduce música con transición suave.
+func reproducir_musica(audio: AudioStream, tiempo_transicion: float = 2.0, vol_db: float = 0.0) -> void:
+	if not audio: return
+
+	if _reproductor_activo and _reproductor_activo.stream == audio and _reproductor_activo.playing:
 		return
 	
-	# Buscar reproductor disponible
-	for player in sound_players:
-		if not player.playing:
-			player.stream = stream
-			player.volume_db = linear_to_db(volumen * sfx_volume)
-			player.play()
-			return
-	
-	# Si todos están ocupados, usa el índice rotativo
-	var player = sound_players[current_player_index]
-	player.stream = stream
-	player.volume_db = linear_to_db(volumen * sfx_volume)
-	player.play()
-	current_player_index = (current_player_index + 1) % MAX_SOUND_PLAYERS
+	var nuevo = _reproductor_musica_1 if _reproductor_activo != _reproductor_musica_1 else _reproductor_musica_2
+	var viejo = _reproductor_activo
 
-## Reproduce música de fondo.
-func reproducir_musica(stream: AudioStream, volumen: float = 1.0):
-	if not stream:
-		push_warning("AudioManager: No se proporcionó música")
-		return
-	
-	music_player.stream = stream
-	music_player.volume_db = linear_to_db(volumen * music_volume)
-	music_player.play()
-	print("AudioManager: Reproduciendo música")
+	# Configurar nuevo
+	nuevo.stream = audio
+	nuevo.volume_db = -80.0 # Empezar mudo
+	nuevo.play()
 
-## Detiene la música.
-func detener_musica():
-	music_player.stop()
-	print("AudioManager: Música detenida")
+	_reproductor_activo = nuevo
 
-## Cambia el volumen de la música.
-func set_music_volume(vol: float):
-	music_volume = clamp(vol, 0.0, 1.0)
-	music_player.volume_db = linear_to_db(music_volume)
+	# Animar
+	if _interpolacion_musica: _interpolacion_musica.kill()
+	_interpolacion_musica = create_tween().set_parallel(true)
 
-## Cambia el volumen de los efectos.
-func set_sfx_volume(vol: float):
-	sfx_volume = clamp(vol, 0.0, 1.0)
+	# Fade In Nuevo
+	_interpolacion_musica.tween_property(nuevo, "volume_db", vol_db, tiempo_transicion).set_trans(Tween.TRANS_SINE)
 
-func _on_sound_finished(player: AudioStreamPlayer):
-	# El player vuelve al pool automáticamente
-	pass
+	# Fade Out Viejo
+	if viejo and viejo.playing:
+		var t = _interpolacion_musica.tween_property(viejo, "volume_db", -80.0, tiempo_transicion)
+		t.finished.connect(viejo.stop)
+
+## Detiene la música con fade out.
+func detener_musica(tiempo_fade: float = 2.0) -> void:
+	if _reproductor_activo and _reproductor_activo.playing:
+		if _interpolacion_musica: _interpolacion_musica.kill()
+		_interpolacion_musica = create_tween()
+		var t = _interpolacion_musica.tween_property(_reproductor_activo, "volume_db", -80.0, tiempo_fade)
+		t.finished.connect(_reproductor_activo.stop)
+
+# --- INTERNO ---
+
+func _obtener_reproductor_libre() -> AudioStreamPlayer:
+	var reproductor = _pool_sfx[_indice_sfx]
+	_indice_sfx = (_indice_sfx + 1) % MAX_REPRODUCTORES_SFX
+	return reproductor
+
+func _crear_buses_si_no_existen() -> void:
+	if AudioServer.get_bus_index(BUS_MUSICA) == -1:
+		AudioServer.add_bus()
+		AudioServer.set_bus_name(AudioServer.bus_count - 1, BUS_MUSICA)
+		AudioServer.set_bus_send(AudioServer.get_bus_index(BUS_MUSICA), BUS_MAESTRO)
+
+	if AudioServer.get_bus_index(BUS_SFX) == -1:
+		AudioServer.add_bus()
+		AudioServer.set_bus_name(AudioServer.bus_count - 1, BUS_SFX)
+		AudioServer.set_bus_send(AudioServer.get_bus_index(BUS_SFX), BUS_MAESTRO)

@@ -1,59 +1,69 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponenteLevelPortal.gd
-## Portal de cambio de nivel.
+## Zona que transporta al jugador a otra escena (.tscn).
 ##
-## **Uso:** Añade este componente para crear portales entre niveles.
-## Cambia de escena al entrar.
-##
-## **Casos de uso:**
-## - Puertas entre niveles
-## - Portales mágicos
-## - Escaleras
-## - Teletransportadores
-##
-## **Requisito:** Debe ser hijo de un Area2D.
-@icon("res://icon.svg")
-class_name ComponenteLevelPortal
+## **Uso:** Puertas, escaleras o portales mágicos.
+## **Requisito:** Hijo de Area2D.
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_LevelPortal
 extends Area2D
-const _tool_context = "RuichisLab/Nodos"
 
+# --- CONFIGURACIÓN ---
+
+## Ruta de la escena destino.
 @export_file("*.tscn") var escena_destino: String
+
+## Nombre del Marker2D donde aparecerá el jugador en la nueva escena (ej: "EntradaNorte").
 @export var nombre_punto_aparicion: String = "Inicio"
+
+## Sonido al activar el portal.
 @export var sonido_entrar: String = "portal_enter"
 
-func _ready():
-	body_entered.connect(_on_body_entered)
+## Si es true, guarda la partida automáticamente antes de cambiar.
+@export var guardar_al_entrar: bool = false
 
-func _on_body_entered(body):
+func _ready() -> void:
+	if not body_entered.is_connected(_on_body_entered):
+		body_entered.connect(_on_body_entered)
+
+func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("jugador") or body.name == "Jugador":
 		viajar()
 
-func _get_sound_manager():
-	if Engine.has_singleton("SoundManager"):
-		return Engine.get_singleton("SoundManager")
-	if Engine.has_singleton("AudioManager"):
-		return Engine.get_singleton("AudioManager")
-	if is_inside_tree():
-		return get_tree().root.get_node_or_null("SoundManager") or get_tree().root.get_node_or_null("AudioManager")
-	return null
+func viajar() -> void:
+	if escena_destino == "":
+		push_error("RL_LevelPortal: No hay escena destino asignada.")
+		return
 
-func viajar():
-	if escena_destino == "": return
+	# print("Viajando a: " + escena_destino)
 	
-	print("Viajando a: " + escena_destino)
+	# Sonido
+	if sonido_entrar != "" and Engine.has_singleton("AudioManager"):
+		Engine.get_singleton("AudioManager").call("play_sfx", sonido_entrar)
 	
-	var sm = _get_sound_manager()
-	if sm:
-		if sm.has_method("play_sfx"):
-			sm.play_sfx(sonido_entrar)
-		elif sm.has_method("reproducir_sonido") and typeof(sonido_entrar) == TYPE_OBJECT:
-			sm.reproducir_sonido(sonido_entrar)
+	# Guardado opcional
+	if guardar_al_entrar and Engine.has_singleton("SaveManager"):
+		Engine.get_singleton("SaveManager").call("guardar_juego")
 	
-	# Guardar datos antes de cambiar si es necesario
-	# if SistemaGuardado: SistemaGuardado.guardar_juego()
+	# Configurar punto de aparición
+	if Engine.has_singleton("VariableManager"):
+		Engine.get_singleton("VariableManager").call("set_valor", "next_spawn_point", nombre_punto_aparicion)
 	
-	if SceneManager:
-		# SceneManager debería soportar pasar datos, pero por ahora usamos variables globales
-		VariableManager.set_valor("next_spawn_point", nombre_punto_aparicion)
-		SceneManager.cambiar_escena(escena_destino)
+	# Cambio de Escena
+	if Engine.has_singleton("GameManager"):
+		Engine.get_singleton("GameManager").cambiar_escena(escena_destino)
 	else:
 		get_tree().change_scene_to_file(escena_destino)
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings: PackedStringArray = []
+	if escena_destino == "":
+		warnings.append("Asigna una escena destino.")
+
+	var tiene_colision = false
+	for child in get_children():
+		if child is CollisionShape2D or child is CollisionPolygon2D:
+			tiene_colision = true
+			break
+	if not tiene_colision:
+		warnings.append("Se requiere un CollisionShape2D hijo.")
+	return warnings
