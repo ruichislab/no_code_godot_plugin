@@ -4,18 +4,32 @@
 class_name ResourceMision
 extends Resource
 
-@export_group("Info General")
+@export_group("Información General")
+## Identificador único para seguimiento interno (ej: 'mision_tutorial_01').
 @export var id_mision: String = "mision_01"
+
+## Título visible para el jugador.
 @export var titulo: String = "Título de la Misión"
-@export_multiline var descripcion: String = "Descripción detallada de lo que hay que hacer."
+
+## Descripción detallada de la tarea.
+@export_multiline var descripcion: String = "Descripción detallada..."
+
+## Icono opcional para mostrar en la UI.
+@export var icono: Texture2D
 
 @export_group("Objetivos")
-## ID del evento que hace avanzar esta misión (ej: "matar_rata", "recoger_madera").
-@export var id_objetivo: String = "matar_rata"
-## Cantidad necesaria para completar.
+## ID del evento global que hace avanzar esta misión (ej: 'matar_rata', 'recoger_madera').
+@export var id_objetivo: String = "evento_generico"
+
+## Cantidad necesaria para completar el objetivo.
 @export var cantidad_necesaria: int = 1
 
 @export_group("Recompensas")
+## Puntos de experiencia a otorgar.
 @export var experiencia: int = 100
+
+## Monedas de oro a otorgar.
 @export var oro: int = 50
-@export var items_recompensa: Array[Resource] = [] # ResourceCardData o similar
+
+## Lista de items (Recursos) a entregar.
+@export var items_recompensa: Array[Resource] = []

@@ -1,146 +1,171 @@
 # Archivo: addons/no_code_godot_plugin/Autoloads/SaveManager.gd
-## Manager global para guardar y cargar partidas.
+## Sistema de guardado y carga de partidas.
 ##
-## **Uso:** Autoload automático. Úsalo con `SaveManager.guardar()`.
-##
-## **Funciones:**
-## - Guardar/cargar datos del juego
-## - Múltiples slots de guardado
-## - Serialización JSON
-## - Comprobación de existencia de guardados
-
+## Gestiona la persistencia de datos del juego en formato JSON.
+## Soporta múltiples slots, metadata y versiones.
 extends Node
 
-const SAVE_DIR = "user://saves/"
-const SAVE_EXTENSION = ".save"
+# --- CONFIGURACIÓN ---
+const PREFIJO_ARCHIVO: String = "user://savegame_"
+const EXTENSION: String = ".save"
 
-var datos_actuales: Dictionary = {}
-var slot_actual: int = 0
+# --- FUNCIONES PRINCIPALES ---
 
-# Helpers JSON compatibles con varias versiones de Godot
-func _json_stringify(obj) -> String:
-	var j = JSON.new()
-	if j.has_method("stringify"):
-		return j.stringify(obj)
-	if j.has_method("print"):
-		return j.print(obj)
-	# Fallback: usar str() si no hay método conocido
-	return str(obj)
+## Obtiene la ruta completa del archivo para un slot dado.
+func obtener_ruta(slot: int) -> String:
+	return PREFIJO_ARCHIVO + str(slot) + EXTENSION
 
-func _json_parse(text):
-	var j = JSON.new()
-	var parsed = null
-	if j.has_method("parse"):
-		parsed = j.parse(text)
-	elif j.has_method("parse_string"):
-		parsed = j.parse_string(text)
-	# No hay fallback global seguro; devolver null si no se pudo parsear
+## Guarda el estado actual del juego en el slot especificado.
+func guardar_juego(slot: int = 1) -> void:
+	# print("Iniciando guardado de juego en Slot %d..." % slot)
+
+	var datos_guardado: Dictionary = {
+		"version": "1.0",
+		"fecha": int(Time.get_unix_time_from_system()),
+		"tiempo_juego": Time.get_ticks_msec() / 1000.0,
+		"datos_jugador": {},
+		"datos_inventario": {},
+		"posicion_jugador": {}
+	}
+
+	# 1. Recopilar datos del Jugador (Estadísticas y Posición)
+	if Engine.has_singleton("GameManager"):
+		var gm = Engine.get_singleton("GameManager")
+		var jugador = gm.get("jugador")
+		if is_instance_valid(jugador):
+			# Estadísticas
+			var estadisticas = jugador.get_node_or_null("Estadisticas")
+			if estadisticas and estadisticas.has_method("guardar_datos"):
+				datos_guardado["datos_jugador"] = estadisticas.guardar_datos()
+
+			# Posición
+			datos_guardado["posicion_jugador"] = {
+				"x": jugador.global_position.x,
+				"y": jugador.global_position.y
+			}
+
+	# 2. Recopilar datos del Inventario (si el singleton existe)
+	if Engine.has_singleton("InventarioGlobal"):
+		var inv = Engine.get_singleton("InventarioGlobal")
+		if inv.has_method("guardar_datos"):
+			datos_guardado["datos_inventario"] = inv.guardar_datos()
+
+	# 3. Recopilar datos de Misiones (si el singleton existe)
+	if Engine.has_singleton("GestorMisiones"):
+		var misiones = Engine.get_singleton("GestorMisiones")
+		if misiones.has_method("guardar_datos"):
+			datos_guardado["datos_misiones"] = misiones.guardar_datos()
+
+	# 4. Escribir en disco usando FileAccess (Godot 4)
+	var ruta: String = obtener_ruta(slot)
+	var archivo: FileAccess = FileAccess.open(ruta, FileAccess.WRITE)
+
+	if archivo:
+		var json_string: String = JSON.stringify(datos_guardado, "\t") # Identación para legibilidad
+		archivo.store_string(json_string)
+		archivo.close()
+		# print("Juego guardado exitosamente en: " + ruta)
 	else:
-		return null
+		push_error("Error al intentar guardar el archivo: " + error_string(FileAccess.get_open_error()))
 
-	if typeof(parsed) == TYPE_DICTIONARY:
-		return parsed
-	return parsed
-
-func _ready():
-	# Crear directorio de guardado si no existe
-	if not DirAccess.dir_exists_absolute(SAVE_DIR):
-		DirAccess.make_dir_absolute(SAVE_DIR)
-	print("SaveManager: Inicializado. Directorio: ", SAVE_DIR)
-
-## Guarda datos en el slot especificado.
-func guardar(slot: int = 0, datos = null):
-	slot_actual = slot
-
-	# Normalizar parámetro 'datos' (evitar mutable default)
-	if datos == null:
-		datos = {}
-
-	# Mezclar datos nuevos con actuales
-	for key in datos:
-		datos_actuales[key] = datos[key]
-
-	var ruta = _get_save_path(slot)
-	var archivo = FileAccess.open(ruta, FileAccess.WRITE)
-
-	if archivo == null:
-		push_error("SaveManager: No se pudo abrir el archivo para guardar: %s" % ruta)
+## Carga el juego desde el slot especificado.
+func cargar_juego(slot: int = 1) -> bool:
+	var ruta: String = obtener_ruta(slot)
+	if not FileAccess.file_exists(ruta):
+		# print("No existe archivo de guardado en Slot %d." % slot)
 		return false
 
-	var json_text = _json_stringify(datos_actuales)
-	archivo.store_string(json_text)
+	var archivo: FileAccess = FileAccess.open(ruta, FileAccess.READ)
+	if not archivo:
+		push_error("Error al leer archivo de guardado: " + error_string(FileAccess.get_open_error()))
+		return false
+
+	var json_string: String = archivo.get_as_text()
 	archivo.close()
 
-	print("SaveManager: Guardado en slot ", slot)
-	return true
-
-## Carga datos del slot especificado.
-func cargar(slot: int = 0) -> Dictionary:
-	slot_actual = slot
-	var ruta = _get_save_path(slot)
-
-	if not FileAccess.file_exists(ruta):
-		push_warning("SaveManager: No existe guardado en slot %d" % slot)
-		return {}
-
-	var archivo = FileAccess.open(ruta, FileAccess.READ)
-	if archivo == null:
-		push_error("SaveManager: No se pudo leer el archivo: %s" % ruta)
-		return {}
-
-	var texto = archivo.get_as_text()
-	archivo.close()
-
-	var datos = _json_parse(texto)
-	if not (datos is Dictionary):
-		push_error("SaveManager: Error al parsear JSON en slot %d" % slot)
-		return {}
-
-	datos_actuales = datos
-	print("SaveManager: Cargado desde slot ", slot)
-	return datos_actuales
-
-## Comprueba si existe un guardado en el slot.
-func existe_guardado(slot: int = 0) -> bool:
-	return FileAccess.file_exists(_get_save_path(slot))
-
-## Borra el guardado del slot.
-func borrar_guardado(slot: int = 0):
-	var ruta = _get_save_path(slot)
-	if FileAccess.file_exists(ruta):
-		# Intentar eliminar usando DirAccess si está disponible
-		var removed = ERR_UNAVAILABLE
-		var rel = ruta
-		if ruta.begins_with("user://"):
-			rel = ruta.replace("user://", "")
-			var dir = DirAccess.open("user://")
-			if dir:
-				# intentar remove_file (API puede variar entre versiones)
-				if dir.has_method("remove_file"):
-					removed = dir.remove_file(rel)
-				elif dir.has_method("remove"):
-					removed = dir.remove(rel)
-
-		# Fallback: truncar el archivo para evitar errores si no se puede borrar
-		if removed != OK:
-			var f = FileAccess.open(ruta, FileAccess.WRITE)
-			if f:
-				f.store_string("")
-				f.close()
-				removed = OK
-
-		if removed == OK:
-			print("SaveManager: Borrado slot %d" % slot)
+	# Parsing JSON seguro
+	var json: JSON = JSON.new()
+	var error: int = json.parse(json_string)
+	if error == OK:
+		var datos_guardado = json.data
+		if typeof(datos_guardado) == TYPE_DICTIONARY:
+			_aplicar_datos_cargados(datos_guardado)
+			return true
 		else:
-			push_error("SaveManager: No se pudo borrar el guardado: %s" % ruta)
+			push_error("Error de formato: El archivo de guardado no contiene un diccionario.")
+			return false
+	else:
+		push_error("Error al parsear JSON en línea %d: %s" % [json.get_error_line(), json.get_error_message()])
+		return false
 
-## Obtiene un valor guardado.
-func get_valor(key: String, default = null):
-	return datos_actuales.get(key, default)
+func _aplicar_datos_cargados(datos: Dictionary) -> void:
+	# print("Aplicando datos cargados...")
 
-## Guarda un valor.
-func set_valor(key: String, value):
-	datos_actuales[key] = value
+	# 1. Cargar Inventario
+	if datos.has("datos_inventario") and Engine.has_singleton("InventarioGlobal"):
+		var inv = Engine.get_singleton("InventarioGlobal")
+		if inv.has_method("cargar_datos"):
+			inv.cargar_datos(datos.datos_inventario)
 
-func _get_save_path(slot: int) -> String:
-	return SAVE_DIR + "slot_" + str(slot) + SAVE_EXTENSION
+	# 2. Cargar Misiones
+	if datos.has("datos_misiones") and Engine.has_singleton("GestorMisiones"):
+		var misiones = Engine.get_singleton("GestorMisiones")
+		if misiones.has_method("cargar_datos"):
+			misiones.cargar_datos(datos.datos_misiones)
+
+	# 3. Cargar Jugador
+	if Engine.has_singleton("GameManager"):
+		var gm = Engine.get_singleton("GameManager")
+		var jugador = gm.get("jugador")
+		if is_instance_valid(jugador):
+			# Posición
+			if datos.has("posicion_jugador"):
+				var pos = datos.posicion_jugador
+				jugador.global_position = Vector2(pos.x, pos.y)
+
+			# Estadísticas
+			if datos.has("datos_jugador"):
+				var estadisticas = jugador.get_node_or_null("Estadisticas")
+				if estadisticas and estadisticas.has_method("cargar_datos"):
+					estadisticas.cargar_datos(datos.datos_jugador)
+
+	# print("Carga completada.")
+
+## Verifica si existe una partida guardada en el slot.
+func existe_partida(slot: int = 1) -> bool:
+	return FileAccess.file_exists(obtener_ruta(slot))
+
+## Borra la partida del slot especificado.
+func borrar_partida(slot: int = 1) -> void:
+	var ruta: String = obtener_ruta(slot)
+
+	# Godot 4 usa DirAccess para borrar archivos de manera estática
+	if FileAccess.file_exists(ruta):
+		var error: int = DirAccess.remove_absolute(ruta)
+		if error == OK:
+			# print("Partida borrada: Slot %d" % slot)
+			pass
+		else:
+			push_error("No se pudo borrar la partida: %s (Error %d)" % [ruta, error])
+
+## Obtiene metadatos básicos de un slot sin cargar todo el juego.
+func obtener_metadata(slot: int) -> Dictionary:
+	if not existe_partida(slot):
+		return {}
+
+	var archivo: FileAccess = FileAccess.open(obtener_ruta(slot), FileAccess.READ)
+	if not archivo:
+		return {}
+
+	var texto: String = archivo.get_as_text()
+	archivo.close()
+
+	var json: JSON = JSON.new()
+	if json.parse(texto) == OK and typeof(json.data) == TYPE_DICTIONARY:
+		var datos: Dictionary = json.data
+		return {
+			"fecha": datos.get("fecha", 0),
+			"version": datos.get("version", "1.0"),
+			"tiempo_juego": datos.get("tiempo_juego", 0.0)
+		}
+	return {}

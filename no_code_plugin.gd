@@ -15,8 +15,14 @@ func _enter_tree() -> void:
 	# 2. REGISTRO DE AUTOLOADS
 	_registrar_autoloads()
 	
-	# 3. REGISTRO DE NODOS
+	# 3. CONFIGURACIÓN AUTOMÁTICA
+	var config_script = preload("res://addons/no_code_godot_plugin/RuichisLabConfig.gd")
+	config_script.configurar_proyecto()
 	
+	# 4. ASISTENTE (MENU)
+	add_tool_menu_item("RuichisLab: Crear Escena Básica", _abrir_asistente)
+
+	# 5. REGISTRO DE NODOS
 	var icon_default = EditorInterface.get_base_control().get_theme_icon("Node", "EditorIcons")
 	var icon_area = EditorInterface.get_base_control().get_theme_icon("Area2D", "EditorIcons")
 
@@ -50,12 +56,12 @@ func _enter_tree() -> void:
 	add_custom_type_safe("RuichisLab/Combat/HitFlash", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteHitFlash.gd"), icon_default)
 	add_custom_type_safe("RuichisLab/Combat/Trail", "Line2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteTrail.gd"), icon_default)
 	add_custom_type_safe("RuichisLab/Combat/OnDeath", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteOnDeath.gd"), icon_default)
-	add_custom_type_safe("RuichisLab/Combat/Proyectil", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteProyectil.gd"), icon_default)
+	add_custom_type_safe("RuichisLab/Combat/Proyectil", "Node2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteProyectil.gd"), icon_default)
 
 	# IA
 	add_custom_type_safe("RuichisLab/AI/StateMachine", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteMaquinaEstados.gd"), icon_default)
 	add_custom_type_safe("RuichisLab/AI/BehaviorTree", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteBehaviorTree.gd"), icon_default)
-	add_custom_type_safe("RuichisLab/AI/Patrol", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponentePatrol.gd"), icon_default)
+	add_custom_type_safe("RuichisLab/AI/Patrol", "Node2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponentePatrol.gd"), icon_default)
 	add_custom_type_safe("RuichisLab/AI/Follower", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteFollower.gd"), icon_default)
 
 	# UTILIDADES
@@ -136,6 +142,20 @@ func _enter_tree() -> void:
 func _exit_tree() -> void:
 	_remove_current_types()
 	_remover_autoloads()
+	remove_tool_menu_item("RuichisLab: Crear Escena Básica")
+
+func _abrir_asistente() -> void:
+	var script = preload("res://addons/no_code_godot_plugin/Editor/AsistenteCreacion.gd")
+	if script:
+		var instancia = script.new()
+		# El script usa EditorScript._run(), pero aquí lo instanciamos.
+		# Hack simple: llamar a un método estático o ejecutar lógica.
+		# EditorScript es especial. Mejor lo ejecutamos vía EditorInterface.
+		var ei = get_editor_interface()
+		# No hay API directa fácil para "run tool script" desde plugin sin instanciarlo como nodo.
+		# Llamaremos a _run manualmente simulando el contexto.
+		if instancia.has_method("_run"):
+			instancia._run()
 
 func _registrar_autoloads() -> void:
 	_safe_add_autoload("GameManager", "res://addons/no_code_godot_plugin/Autoloads/GameManager.gd")
@@ -143,7 +163,7 @@ func _registrar_autoloads() -> void:
 	_safe_add_autoload("SaveManager", "res://addons/no_code_godot_plugin/Autoloads/SaveManager.gd")
 	_safe_add_autoload("PoolManager", "res://addons/no_code_godot_plugin/Autoloads/PoolManager.gd")
 	_safe_add_autoload("TimeManager", "res://addons/no_code_godot_plugin/Servicios/TimeManager.gd")
-	_safe_add_autoload("SettingsManager", "res://addons/no_code_godot_plugin/Servicios/SettingsManager.gd") # NEW
+	_safe_add_autoload("SettingsManager", "res://addons/no_code_godot_plugin/Servicios/SettingsManager.gd")
 	_safe_add_autoload("DialogueManager", "res://addons/no_code_godot_plugin/Servicios/DialogueManager.gd")
 	_safe_add_autoload("InventarioGlobal", "res://addons/no_code_godot_plugin/Datos/Inventario/InventarioGlobal.gd")
 	_safe_add_autoload("DebugConsole", "res://addons/no_code_godot_plugin/Servicios/DebugConsole.gd")
