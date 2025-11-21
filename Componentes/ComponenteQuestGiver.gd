@@ -10,7 +10,7 @@ extends Area2D
 # --- CONFIGURACIÓN ---
 
 ## Recurso de la misión a entregar.
-@export var mision: ResourceMision
+@export var mision: RL_RecursoMision
 
 ## Si es true, la misión se acepta automáticamente al entrar en el área.
 @export var autoiniciar: bool = false
@@ -54,5 +54,5 @@ func dar_mision() -> void:
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings: PackedStringArray = []
 	if not mision:
-		warnings.append("Asigna un 'ResourceMision'.")
+		warnings.append("Asigna un 'RL_RecursoMision'.")
 	return warnings

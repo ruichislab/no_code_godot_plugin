@@ -8,7 +8,7 @@ class_name RL_DialogSystem
 extends Area2D
 
 # --- CONFIGURACIÓN ---
-@export var dialogo_data: ResourceDialogo
+@export var dialogo_data: RL_RecursoDialogo
 @export var velocidad_texto: float = 0.03 # Segundos por caracter
 @export var sonido_voz: String = "voice_blip"
 
@@ -74,7 +74,7 @@ func _mostrar_linea(indice: int) -> void:
 	
 	# Sonido (opcional: loopear un blip)
 	if sonido_voz != "" and Engine.has_singleton("AudioManager"):
-		Engine.get_singleton("AudioManager").call("play_sfx", sonido_voz, -10.0, 1.0, 0.2)
+		Engine.get_singleton("AudioManager").call("reproducir_sfx", sonido_voz, -10.0, 1.0, 0.2)
 
 func _input(event: InputEvent) -> void:
 	if not _canvas: return
@@ -139,5 +139,5 @@ func _crear_ui() -> void:
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings: PackedStringArray = []
 	if not dialogo_data:
-		warnings.append("Asigna un 'ResourceDialogo' con el contenido.")
+		warnings.append("Asigna un 'RL_RecursoDialogo' con el contenido.")
 	return warnings

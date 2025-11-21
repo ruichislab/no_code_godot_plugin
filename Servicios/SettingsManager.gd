@@ -4,6 +4,9 @@
 ## **Uso:** Autoload 'SettingsManager'. Guarda automáticamente en 'user://settings.cfg'.
 extends Node
 
+signal volumen_cambiado(bus: String, valor: float)
+signal pantalla_completa_cambiada(es_full: bool)
+
 const RUTA_AJUSTES: String = "user://settings.cfg"
 
 var _config: ConfigFile = ConfigFile.new()
@@ -23,12 +26,13 @@ func cargar_ajustes() -> void:
 	# Audio
 	for bus in volumenes.keys():
 		var vol = _config.get_value("Audio", bus, 1.0)
-		set_volumen(bus, vol)
+		set_volumen(bus, vol, false) # false = no guardar inmediatamente
 		
 	# Video
 	pantalla_completa = _config.get_value("Video", "Fullscreen", false)
 	vsync = _config.get_value("Video", "VSync", true)
 	_aplicar_video()
+	emit_signal("pantalla_completa_cambiada", pantalla_completa)
 
 	# Inputs
 	if _config.has_section("Input"):
@@ -50,15 +54,13 @@ func guardar_ajustes() -> void:
 	_config.set_value("Video", "Fullscreen", pantalla_completa)
 	_config.set_value("Video", "VSync", vsync)
 
-	# Input (Guardar solo acciones personalizadas si se desea, aquí guardamos todo lo modificado)
-	# Para simplicidad, guardamos las acciones clave
+	# Input
 	var acciones_a_guardar = InputMap.get_actions()
 	for accion in acciones_a_guardar:
-		# Filtrar acciones de UI nativas si se quiere
 		if not accion.begins_with("ui_"):
 			var eventos = InputMap.action_get_events(accion)
 			_config.set_value("Input", accion, eventos)
-	
+
 	_config.save(RUTA_AJUSTES)
 
 func _guardar_ajustes_iniciales() -> void:
@@ -66,7 +68,7 @@ func _guardar_ajustes_iniciales() -> void:
 
 # --- API PÚBLICA ---
 
-func set_volumen(bus_nombre: String, valor_lineal: float) -> void:
+func set_volumen(bus_nombre: String, valor_lineal: float, guardar_auto: bool = true) -> void:
 	volumenes[bus_nombre] = clamp(valor_lineal, 0.0, 1.0)
 	
 	var bus_idx = AudioServer.get_bus_index(bus_nombre)
@@ -75,9 +77,11 @@ func set_volumen(bus_nombre: String, valor_lineal: float) -> void:
 		AudioServer.set_bus_volume_db(bus_idx, db)
 		AudioServer.set_bus_mute(bus_idx, valor_lineal <= 0.01)
 	
-	# No guardamos en disco en cada frame del slider, mejor hacerlo al cerrar menú o timer.
-	# Pero para simplicidad de este ejemplo:
-	# guardar_ajustes()
+	emit_signal("volumen_cambiado", bus_nombre, volumenes[bus_nombre])
+
+	if guardar_auto:
+		# Usamos un timer o lógica diferida si queremos optimizar
+		pass
 
 func get_volumen(bus_nombre: String) -> float:
 	return volumenes.get(bus_nombre, 1.0)
@@ -85,6 +89,7 @@ func get_volumen(bus_nombre: String) -> float:
 func set_pantalla_completa(valor: bool) -> void:
 	pantalla_completa = valor
 	_aplicar_video()
+	emit_signal("pantalla_completa_cambiada", pantalla_completa)
 	guardar_ajustes()
 
 func _aplicar_video() -> void:

@@ -1,21 +1,8 @@
 # Archivo: addons/no_code_godot_plugin/Recursos/RecursoDialogo.gd
-## Recurso para definir conversaciones completas.
+## Datos de una conversación (Visual Novel).
 @icon("res://addons/no_code_godot_plugin/deck_icon.png")
-class_name ResourceDialogo
+class_name RL_RecursoDialogo
 extends Resource
 
-# Array de diccionarios. Cada entrada representa una línea.
-# Formato:
-# {
-#   "personaje": "Nombre",
-#   "texto": "Hola mundo",
-#   "retrato": Texture2D (opcional),
-#   "opciones": [{"texto": "Si", "next_id": 5}, {"texto": "No", "next_id": -1}]
-# }
-@export var conversacion: Array[Dictionary] = [
-	{
-		"personaje": "Guía",
-		"texto": "Bienvenido al juego.",
-		"retrato": null
-	}
-]
+# Array de diccionarios: { "personaje": "X", "texto": "...", "retrato": Texture }
+@export var conversacion: Array[Dictionary] = []

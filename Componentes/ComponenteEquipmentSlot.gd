@@ -11,9 +11,9 @@ extends Node
 @export var nodo_stats: RL_Stats
 
 # --- ESTADO ---
-var item_equipado: ResourceEquipment
+var item_equipado: RL_RecursoEquipo
 
-func equipar(item: ResourceEquipment) -> bool:
+func equipar(item: RL_RecursoEquipo) -> bool:
 	if not item or item.tipo_slot != tipo_slot:
 		push_warning("RL_EquipmentSlot: Tipo de item incorrecto.")
 		return false
@@ -33,7 +33,7 @@ func desequipar() -> void:
 	print("Desequipado: " + item_equipado.nombre)
 	item_equipado = null
 
-func _aplicar_modificadores(item: ResourceEquipment, remover: bool) -> void:
+func _aplicar_modificadores(item: RL_RecursoEquipo, remover: bool) -> void:
 	if not nodo_stats: return
 
 	for stat_name in item.modificadores:

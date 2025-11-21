@@ -21,11 +21,12 @@ func _ready() -> void:
 			area_entered.connect(_on_area_entered)
 		if not area_exited.is_connected(_on_area_exited):
 			area_exited.connect(_on_area_exited)
+	else:
+		child_entered_tree.connect(func(_x): queue_redraw())
+		child_exiting_tree.connect(func(_x): queue_redraw())
 
 func _process(delta: float) -> void:
-	if Engine.is_editor_hint():
-		queue_redraw()
-		return
+	if Engine.is_editor_hint(): return # Optimización: No redraw constante
 
 	if objetivos.is_empty(): return
 	timer -= delta
@@ -61,7 +62,6 @@ func _draw() -> void:
 			if shape is RectangleShape2D:
 				var rect = shape.get_rect()
 				draw_rect(rect, color, false, 3.0)
-				# Dibujar rayas diagonales
 				_dibujar_trama(rect, color)
 			elif shape is CircleShape2D:
 				draw_circle(child.position, shape.radius, Color(color.r, color.g, color.b, 0.2))
@@ -71,11 +71,9 @@ func _dibujar_trama(rect: Rect2, color: Color) -> void:
 	var step = 10.0
 	var alpha_col = color
 	alpha_col.a = 0.5
-	for i in range(0, int(rect.size.x + rect.size.y), int(step)):
-		var start = Vector2(rect.position.x + i, rect.position.y)
-		var end = Vector2(rect.position.x + i - rect.size.y, rect.position.y + rect.size.y)
-		# Clampear (simplificado, solo visual)
-		draw_line(start, end, alpha_col, 1.0)
+	# Dibujo simple para evitar sobrecarga
+	draw_line(rect.position, rect.end, alpha_col, 2.0)
+	draw_line(Vector2(rect.end.x, rect.position.y), Vector2(rect.position.x, rect.end.y), alpha_col, 2.0)
 
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings: PackedStringArray = []

@@ -22,6 +22,10 @@ func _ready() -> void:
 	if not Engine.is_editor_hint():
 		if not body_entered.is_connected(_on_body_entered):
 			body_entered.connect(_on_body_entered)
+	else:
+		# Optimización Editor: Redibujar solo si cambian hijos
+		child_entered_tree.connect(func(_x): queue_redraw())
+		child_exiting_tree.connect(func(_x): queue_redraw())
 
 func _on_body_entered(body: Node2D) -> void:
 	if solo_jugador:
@@ -44,28 +48,24 @@ func activar(actor: Node = null) -> void:
 			accion.ejecutar(actor)
 
 # --- DEBUG VISUAL ---
-func _process(_delta: float) -> void:
-	if Engine.is_editor_hint():
-		queue_redraw()
+# Eliminado _process en editor para evitar redraw constante.
+# Se usa señales de cambio de hijos o setget si fuera necesario.
 
 func _draw() -> void:
 	if not Engine.is_editor_hint(): return
 
-	# Obtener configuración global (si existe) o fallback
 	var color = ProjectSettings.get_setting("ruichislab/colores/trigger", Color.GREEN)
 
-	# Dibujar contorno aproximado de los collision shapes
 	for child in get_children():
 		if child is CollisionShape2D and child.shape:
 			var shape = child.shape
 			if shape is RectangleShape2D:
 				draw_rect(child.shape.get_rect(), color, false, 2.0)
-				# Relleno semi-transparente
 				var relleno = color
 				relleno.a = 0.2
 				draw_rect(child.shape.get_rect(), relleno, true)
 			elif shape is CircleShape2D:
-				draw_circle(child.position, shape.radius, color)
+				draw_circle(child.position, shape.radius, Color(color.r, color.g, color.b, 0.2))
 				draw_arc(child.position, shape.radius, 0, TAU, 32, color, 2.0)
 
 func _get_configuration_warnings() -> PackedStringArray:

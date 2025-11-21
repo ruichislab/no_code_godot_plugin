@@ -6,9 +6,9 @@
 extends Node
 
 # --- SEÑALES ---
-signal mision_aceptada(mision: ResourceMision)
-signal mision_actualizada(mision: ResourceMision, progreso: int)
-signal mision_completada(mision: ResourceMision)
+signal mision_aceptada(mision: RL_RecursoMision)
+signal mision_actualizada(mision: RL_RecursoMision, progreso: int)
+signal mision_completada(mision: RL_RecursoMision)
 
 # --- ESTADO ---
 # Estructura: { "id_mision": { "ruta": "res://...", "progreso": 0 } }
@@ -23,7 +23,7 @@ func _ready() -> void:
 			bus.evento_global.connect(_on_evento_global)
 
 ## Acepta una nueva misión.
-func aceptar_mision(mision: ResourceMision) -> void:
+func aceptar_mision(mision: RL_RecursoMision) -> void:
 	if not mision: return
 
 	if es_mision_completada(mision.id_mision):
@@ -62,7 +62,7 @@ func avanzar_progreso(id_objetivo: String, cantidad: int = 1) -> void:
 			if estado.progreso >= mision.cantidad_necesaria:
 				_completar_mision(id, mision)
 
-func _completar_mision(id: String, mision: ResourceMision) -> void:
+func _completar_mision(id: String, mision: RL_RecursoMision) -> void:
 	misiones_activas.erase(id)
 	misiones_completadas.append(id)
 	
@@ -92,7 +92,7 @@ func es_mision_activa(id: String) -> bool:
 func es_mision_completada(id: String) -> bool:
 	return id in misiones_completadas
 
-func obtener_mision_activa(id: String) -> ResourceMision:
+func obtener_mision_activa(id: String) -> RL_RecursoMision:
 	if misiones_activas.has(id):
 		return _cargar_recurso(misiones_activas[id].ruta)
 	return null
@@ -113,9 +113,9 @@ func cargar_datos(datos: Dictionary) -> void:
 
 # --- INTERNO ---
 
-func _cargar_recurso(path: String) -> ResourceMision:
+func _cargar_recurso(path: String) -> RL_RecursoMision:
 	if ResourceLoader.exists(path):
-		return load(path) as ResourceMision
+		return load(path) as RL_RecursoMision
 	return null
 
 func _on_evento_global(nombre: String, datos: Dictionary) -> void:

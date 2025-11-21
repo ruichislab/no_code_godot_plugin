@@ -9,8 +9,8 @@ extends Node
 
 # --- CONFIGURACIÓN ---
 
-## Lista inicial de recursos (ResourceCardData) que componen el mazo.
-@export var cartas_iniciales: Array[ResourceCardData] = []
+## Lista inicial de recursos (RL_RecursoCarta) que componen el mazo.
+@export var cartas_iniciales: Array[RL_RecursoCarta] = []
 
 ## Referencia al nodo `RL_Hand` donde aparecerán las cartas robadas.
 @export var mano_objetivo: Control
@@ -22,8 +22,8 @@ extends Node
 @export var barajar_al_inicio: bool = true
 
 # --- ESTADO ---
-var mazo_actual: Array[ResourceCardData] = []
-var descarte: Array[ResourceCardData] = []
+var mazo_actual: Array[RL_RecursoCarta] = []
+var descarte: Array[RL_RecursoCarta] = []
 
 func _ready() -> void:
 	reiniciar_mazo()
@@ -50,7 +50,7 @@ func robar_carta() -> void:
 	var data = mazo_actual.pop_back()
 	_instanciar_carta_en_mano(data)
 
-func _instanciar_carta_en_mano(data: ResourceCardData) -> void:
+func _instanciar_carta_en_mano(data: RL_RecursoCarta) -> void:
 	if not mano_objetivo:
 		push_error("RL_Deck: No hay mano_objetivo asignada.")
 		return
@@ -77,7 +77,7 @@ func _reciclar_descarte() -> void:
 	barajar()
 
 ## Añade una carta al descarte (usar cuando se juega una carta).
-func descartar(data: ResourceCardData) -> void:
+func descartar(data: RL_RecursoCarta) -> void:
 	descarte.append(data)
 
 func _get_configuration_warnings() -> PackedStringArray:

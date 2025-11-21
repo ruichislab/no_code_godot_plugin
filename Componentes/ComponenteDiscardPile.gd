@@ -8,21 +8,21 @@ class_name RL_DiscardPile
 extends Node
 
 # --- SEÑALES ---
-signal carta_agregada(data: ResourceCardData)
+signal carta_agregada(data: RL_RecursoCarta)
 signal pila_vaciada
 
 # --- ESTADO ---
-var cartas: Array[ResourceCardData] = []
+var cartas: Array[RL_RecursoCarta] = []
 
 ## Añade una carta a la pila.
-func agregar_carta(data: ResourceCardData) -> void:
+func agregar_carta(data: RL_RecursoCarta) -> void:
 	if not data: return
 	cartas.append(data)
 	emit_signal("carta_agregada", data)
 	# print("Carta descartada: ", data.get("nombre", "???"))
 
 ## Vacía la pila y devuelve las cartas (para barajar de nuevo al mazo).
-func vaciar() -> Array[ResourceCardData]:
+func vaciar() -> Array[RL_RecursoCarta]:
 	var temp = cartas.duplicate()
 	cartas.clear()
 	emit_signal("pila_vaciada")
