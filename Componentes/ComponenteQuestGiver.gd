@@ -1,57 +1,58 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponenteQuestGiver.gd
-## Otorga misiones al jugador.
+## NPC o disparador que entrega una misión.
 ##
-## **Uso:** Añade este componente a NPCs que dan misiones.
-## Se integra automáticamente con el GestorMisiones.
-##
-## **Casos de uso:**
-## - NPCs que dan misiones principales
-## - Tablones de anuncios con misiones secundarias
-## - Misiones automáticas al entrar en zonas
-##
-## **Requisito:** Debe ser hijo de un Area2D. Requiere GestorMisiones activo.
-@icon("res://icon.svg")
-class_name ComponenteQuestGiver
+## **Uso:** Interactuar con este nodo inicia la misión asignada.
+## **Requisito:** Hijo de Area2D.
+@icon("res://addons/no_code_godot_plugin/deck_icon.png")
+class_name RL_QuestGiver
 extends Area2D
-const _tool_context = "RuichisLab/Nodos"
 
-@export var mision: RecursoMision
-@export var autoiniciar: bool = false # Si es true, inicia al entrar en el área
+# --- CONFIGURACIÓN ---
 
-func _ready():
-	body_entered.connect(_on_body_entered)
+## Recurso de la misión a entregar.
+@export var mision: ResourceMision
 
-func _on_body_entered(body):
+## Si es true, la misión se acepta automáticamente al entrar en el área.
+@export var autoiniciar: bool = false
+
+## Sonido al entregar misión.
+@export var sonido_aceptar: String = "quest_accept"
+
+func _ready() -> void:
+	if not body_entered.is_connected(_on_body_entered):
+		body_entered.connect(_on_body_entered)
+
+func _on_body_entered(body: Node2D) -> void:
 	if not body.is_in_group("jugador") and body.name != "Jugador": return
 	
 	if autoiniciar:
 		dar_mision()
-	else:
-		# Aquí podríamos mostrar un icono de "!" sobre el NPC
-		pass
 
-# Esta función puede ser llamada por un ComponenteInteraccion
-func interactuar():
+## Método público para RL_Interaccion.
+func interactuar(_actor: Node = null) -> void:
 	dar_mision()
 
-func dar_mision():
-	if not mision: return
-	
-	var gm = _get_quest_manager()
-	if gm:
-		if gm.es_mision_completada(mision.id_mision):
-			print("NPC: ¡Gracias por tu ayuda!")
-			# Opcional: Diálogo de agradecimiento
-		elif gm.es_mision_activa(mision.id_mision):
-			print("NPC: ¿Cómo va la tarea?")
-			# Opcional: Diálogo de recordatorio
-		else:
-			gm.aceptar_mision(mision)
-			print("NPC: ¡Por favor, ayúdame!")
-	else:
-		push_error("GestorMisiones no está activo.")
+func dar_mision() -> void:
+	if not mision or not Engine.has_singleton("GestorMisiones"): return
 
-func _get_quest_manager() -> Node:
-	if Engine.has_singleton("GestorMisiones"): return Engine.get_singleton("GestorMisiones")
-	if is_inside_tree(): return get_tree().root.get_node_or_null("GestorMisiones")
-	return null
+	var gm = Engine.get_singleton("GestorMisiones")
+	
+	if gm.es_mision_completada(mision.id_mision):
+		# Ya hecha
+		if Engine.has_singleton("FloatingTextManager"):
+			Engine.get_singleton("FloatingTextManager").call("mostrar_texto", "¡Gracias por tu ayuda!", global_position + Vector2(0, -60))
+	elif gm.es_mision_activa(mision.id_mision):
+		# En progreso
+		if Engine.has_singleton("FloatingTextManager"):
+			Engine.get_singleton("FloatingTextManager").call("mostrar_texto", "¿Aún no terminas?", global_position + Vector2(0, -60))
+	else:
+		# Nueva
+		gm.aceptar_mision(mision)
+		if sonido_aceptar != "" and Engine.has_singleton("AudioManager"):
+			Engine.get_singleton("AudioManager").call("reproducir_sfx", sonido_aceptar)
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings: PackedStringArray = []
+	if not mision:
+		warnings.append("Asigna un 'ResourceMision'.")
+	return warnings

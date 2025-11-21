@@ -19,7 +19,6 @@ func _enter_tree() -> void:
 	
 	var icon_default = EditorInterface.get_base_control().get_theme_icon("Node", "EditorIcons")
 	var icon_area = EditorInterface.get_base_control().get_theme_icon("Area2D", "EditorIcons")
-	# var icon_anim = EditorInterface.get_base_control().get_theme_icon("AnimationPlayer", "EditorIcons")
 
 	# LOGICA
 	add_custom_type_safe("RuichisLab/Logic/Trigger", "Area2D", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteTrigger.gd"), icon_area)
@@ -54,7 +53,7 @@ func _enter_tree() -> void:
 	add_custom_type_safe("RuichisLab/Combat/Proyectil", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteProyectil.gd"), icon_default)
 
 	# IA
-	add_custom_type_safe("RuichisLab/AI/MaquinaEstados", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteMaquinaEstados.gd"), icon_default)
+	add_custom_type_safe("RuichisLab/AI/StateMachine", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteMaquinaEstados.gd"), icon_default)
 	add_custom_type_safe("RuichisLab/AI/BehaviorTree", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteBehaviorTree.gd"), icon_default)
 	add_custom_type_safe("RuichisLab/AI/Patrol", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponentePatrol.gd"), icon_default)
 	add_custom_type_safe("RuichisLab/AI/Follower", "Node", preload("res://addons/no_code_godot_plugin/Componentes/ComponenteFollower.gd"), icon_default)
@@ -141,7 +140,8 @@ func _registrar_autoloads() -> void:
 	_safe_add_autoload("AudioManager", "res://addons/no_code_godot_plugin/Autoloads/AudioManager.gd")
 	_safe_add_autoload("SaveManager", "res://addons/no_code_godot_plugin/Autoloads/SaveManager.gd")
 	_safe_add_autoload("PoolManager", "res://addons/no_code_godot_plugin/Autoloads/PoolManager.gd")
-	_safe_add_autoload("TimeManager", "res://addons/no_code_godot_plugin/Servicios/TimeManager.gd") # NEW
+	_safe_add_autoload("TimeManager", "res://addons/no_code_godot_plugin/Servicios/TimeManager.gd")
+	_safe_add_autoload("SettingsManager", "res://addons/no_code_godot_plugin/Servicios/SettingsManager.gd") # NEW
 	_safe_add_autoload("DialogueManager", "res://addons/no_code_godot_plugin/Servicios/DialogueManager.gd")
 	_safe_add_autoload("InventarioGlobal", "res://addons/no_code_godot_plugin/Datos/Inventario/InventarioGlobal.gd")
 	_safe_add_autoload("DebugConsole", "res://addons/no_code_godot_plugin/Servicios/DebugConsole.gd")
@@ -156,6 +156,7 @@ func _remover_autoloads() -> void:
 	_safe_remove_autoload("SaveManager")
 	_safe_remove_autoload("PoolManager")
 	_safe_remove_autoload("TimeManager")
+	_safe_remove_autoload("SettingsManager")
 	_safe_remove_autoload("DialogueManager")
 	_safe_remove_autoload("InventarioGlobal")
 	_safe_remove_autoload("DebugConsole")
@@ -183,11 +184,11 @@ func _remove_current_types() -> void:
 		"RuichisLab/Logic/Interaccion", "RuichisLab/Logic/SimpleDialog", "RuichisLab/Logic/AdvancedDialog", "RuichisLab/Logic/QuestGiver",
 		"RuichisLab/Logic/QuestObjective", "RuichisLab/Logic/Key", "RuichisLab/Logic/Door", "RuichisLab/Logic/ItemChest",
 		"RuichisLab/Logic/SavePoint", "RuichisLab/Logic/Shop", "RuichisLab/Logic/Timer", "RuichisLab/Logic/SimpleAnimator",
-		"RuichisLab/Logic/DialogSystem", # NEW
+		"RuichisLab/Logic/DialogSystem",
 		"RuichisLab/Combat/Hurtbox", "RuichisLab/Combat/Hitbox", "RuichisLab/Combat/LootDropper", "RuichisLab/Combat/Destructible",
 		"RuichisLab/Combat/MeleeWeapon", "RuichisLab/Combat/Dash", "RuichisLab/Combat/Knockback", "RuichisLab/Combat/Efectos",
 		"RuichisLab/Combat/HitFlash", "RuichisLab/Combat/Trail", "RuichisLab/Combat/OnDeath", "RuichisLab/Combat/Proyectil",
-		"RuichisLab/AI/MaquinaEstados", "RuichisLab/AI/BehaviorTree", "RuichisLab/AI/Patrol", "RuichisLab/AI/Follower",
+		"RuichisLab/AI/StateMachine", "RuichisLab/AI/BehaviorTree", "RuichisLab/AI/Patrol", "RuichisLab/AI/Follower",
 		"RuichisLab/Utils/CamaraJuicy", "RuichisLab/Utils/Spawner", "RuichisLab/Utils/HealthBar", "RuichisLab/Utils/DataLabel",
 		"RuichisLab/Utils/Floating", "RuichisLab/Utils/Rotator", "RuichisLab/Utils/LookAt", "RuichisLab/Utils/Footsteps",
 		"RuichisLab/Utils/Collectible", "RuichisLab/Utils/SceneButton", "RuichisLab/Utils/OpenMenuButton", "RuichisLab/Utils/MenuManager",
