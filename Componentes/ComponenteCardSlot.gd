@@ -13,7 +13,7 @@ signal carta_removida(carta: RL_Card)
 
 # --- CONFIGURACIÓN ---
 
-## Si no está vacío, solo acepta cartas con este tipo (string en ResourceCardData.tipo).
+## Si no está vacío, solo acepta cartas con este tipo (string en RL_RecursoCarta.tipo).
 @export var filtro_tipo: String = ""
 
 ## Número máximo de cartas en este slot.
@@ -29,7 +29,7 @@ func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 		return false
 
 	var carta = data.referencia as RL_Card
-	var info = data.data as ResourceCardData
+	var info = data.data as RL_RecursoCarta
 
 	# Verificar Capacidad
 	if get_child_count() >= capacidad_maxima:

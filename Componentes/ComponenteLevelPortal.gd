@@ -9,13 +9,16 @@ extends Area2D
 
 # --- CONFIGURACIÓN ---
 
-## Ruta de la escena destino.
-@export_file("*.tscn") var escena_destino: String
+## Ruta de la escena destino (.tscn).
+@export_file("*.tscn") var escena_destino: String:
+	set(val):
+		escena_destino = val
+		update_configuration_warnings()
 
 ## Nombre del Marker2D donde aparecerá el jugador en la nueva escena (ej: "EntradaNorte").
 @export var nombre_punto_aparicion: String = "Inicio"
 
-## Sonido al activar el portal.
+## Sonido al activar el portal (ID de AudioManager).
 @export var sonido_entrar: String = "portal_enter"
 
 ## Si es true, guarda la partida automáticamente antes de cambiar.
@@ -33,18 +36,16 @@ func viajar() -> void:
 	if escena_destino == "":
 		push_error("RL_LevelPortal: No hay escena destino asignada.")
 		return
-
-	# print("Viajando a: " + escena_destino)
 	
 	# Sonido
 	if sonido_entrar != "" and Engine.has_singleton("AudioManager"):
-		Engine.get_singleton("AudioManager").call("play_sfx", sonido_entrar)
+		Engine.get_singleton("AudioManager").call("reproducir_sfx", sonido_entrar)
 	
 	# Guardado opcional
 	if guardar_al_entrar and Engine.has_singleton("SaveManager"):
 		Engine.get_singleton("SaveManager").call("guardar_juego")
 	
-	# Configurar punto de aparición
+	# Configurar punto de aparición (Variable Global)
 	if Engine.has_singleton("VariableManager"):
 		Engine.get_singleton("VariableManager").call("set_valor", "next_spawn_point", nombre_punto_aparicion)
 	
@@ -57,7 +58,9 @@ func viajar() -> void:
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings: PackedStringArray = []
 	if escena_destino == "":
-		warnings.append("Asigna una escena destino.")
+		warnings.append("Asigna una escena destino (.tscn).")
+	elif not FileAccess.file_exists(escena_destino):
+		warnings.append("La escena destino no existe (Ruta inválida).")
 
 	var tiene_colision = false
 	for child in get_children():

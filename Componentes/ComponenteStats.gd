@@ -13,7 +13,7 @@ signal atributo_cambiado(nombre: String, valor: float)
 signal muerte
 
 # --- CONFIGURACIÓN ---
-@export var stats_base: ResourceStats
+@export var stats_base: RL_RecursoEstadisticas
 
 # --- ESTADO ---
 # Diccionario de valores actuales (base + modificadores)
@@ -121,5 +121,5 @@ func _recalcular_atributo(nombre: String) -> void:
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings: PackedStringArray = []
 	if not stats_base:
-		warnings.append("Se recomienda asignar un 'ResourceStats' base.")
+		warnings.append("Se recomienda asignar un 'RL_RecursoEstadisticas' base.")
 	return warnings

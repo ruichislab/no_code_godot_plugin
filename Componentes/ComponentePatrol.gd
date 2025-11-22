@@ -1,10 +1,8 @@
 # Archivo: addons/no_code_godot_plugin/Componentes/ComponentePatrol.gd
-## Sistema de patrulla simple (Lineal o por Waypoints).
+## Sistema de patrulla (Lineal o Waypoints) con previsualización en editor.
 ##
-## **Uso:** Añadir como hijo de un CharacterBody2D o Node2D.
-## Mueve automáticamente al padre entre puntos definidos.
-##
-## **Visualización:** En el editor, muestra líneas indicando la ruta (si es lineal).
+## **Uso:** Hijo de un Node2D/CharacterBody2D.
+## **Visualización:** Muestra la ruta en verde/cian en el editor.
 @tool
 @icon("res://addons/no_code_godot_plugin/deck_icon.png")
 class_name RL_Patrol
@@ -14,150 +12,151 @@ extends Node2D
 ## Velocidad de movimiento (px/s).
 @export var velocidad: float = 100.0
 
-## Tiempo de espera al llegar a un punto (segundos).
-@export var esperar_en_extremos: float = 1.0
+## Tiempo de espera en extremos (segundos).
+@export var tiempo_espera: float = 1.0
 
 # --- MODO LINEAL ---
-## Distancia a recorrer desde el punto inicial (izquierda/derecha).
-@export var distancia_fija: float = 200.0:
-	set(value):
-		distancia_fija = value
-		queue_redraw()
+## Distancia a recorrer desde el punto inicial.
+@export var distancia_lineal: float = 200.0:
+	set(val):
+		distancia_lineal = val
+		queue_redraw() # Actualizar dibujo
 
 # --- MODO WAYPOINTS ---
-## Si es true, usa una lista de nodos Marker2D hijos como ruta.
+## Si es true, usa hijos Marker2D como ruta.
 @export var usar_waypoints: bool = false:
-	set(value):
-		usar_waypoints = value
+	set(val):
+		usar_waypoints = val
 		notify_property_list_changed()
+		queue_redraw()
 
-# Estado Interno
+# --- ESTADO ---
 var padre: Node2D
 var punto_inicio: Vector2
-var objetivo: Vector2
-var indice_waypoint: int = 0
-var direccion: int = 1 # 1 o -1 para lineal
+var objetivo_actual: Vector2
+var idx_waypoint: int = 0
+var direccion: int = 1
 var esperando: bool = false
-var ruta_waypoints: Array[Node2D] = []
+var lista_waypoints: Array[Node2D] = []
 
 func _ready() -> void:
-	# Inicialización en runtime
 	if not Engine.is_editor_hint():
 		padre = get_parent() as Node2D
 		if not padre:
-			push_error("RL_Patrol debe ser hijo de un Node2D.")
+			set_process(false)
 			return
 
 		punto_inicio = padre.global_position
-
 		if usar_waypoints:
 			_recopilar_waypoints()
 
-		_calcular_siguiente_objetivo()
+		_calcular_siguiente()
 
 func _process(delta: float) -> void:
-	# Modo Editor: Solo redibujar
 	if Engine.is_editor_hint():
+		# En editor solo redibujamos si cambian los hijos para actualizar líneas de waypoints
+		if usar_waypoints: queue_redraw()
 		return
 
 	if esperando or not padre: return
 	
-	var distancia = padre.global_position.distance_to(objetivo)
+	var dist = padre.global_position.distance_to(objetivo_actual)
 	
-	if distancia < 5.0:
-		_llegue_al_destino()
+	if dist < 5.0:
+		_llegar()
 	else:
-		var dir_vector = (objetivo - padre.global_position).normalized()
+		var dir = (objetivo_actual - padre.global_position).normalized()
 		
-		# Mover según el tipo de padre
 		if padre is CharacterBody2D:
-			padre.velocity = dir_vector * velocidad
+			padre.velocity = dir * velocidad
 			padre.move_and_slide()
-
-			# Si el padre usa TopDownController o similar para animar, la velocidad ya está seteada.
-			# Pero si solo queremos moverlo nosotros:
-			# (Nota: move_and_slide usa la velocidad interna, así que está bien)
 		else:
-			padre.global_position += dir_vector * velocidad * delta
+			padre.global_position += dir * velocidad * delta
 			
-		# Girar padre visualmente (flip simple)
-		if dir_vector.x != 0:
-			# Intentar voltear scale.x manteniendo magnitud
-			if padre.scale.x != 0:
-				padre.scale.x = abs(padre.scale.x) * sign(dir_vector.x)
+		# Flip simple
+		if dir.x != 0 and padre.scale.x != 0:
+			padre.scale.x = abs(padre.scale.x) * sign(dir.x)
 
-func _llegue_al_destino() -> void:
+func _llegar() -> void:
 	esperando = true
-	if esperar_en_extremos > 0:
-		await get_tree().create_timer(esperar_en_extremos).timeout
+	await get_tree().create_timer(tiempo_espera).timeout
+	if not is_instance_valid(this): return
 	
-	if not is_instance_valid(this): return # Seguridad por si se borró durante el await
-
 	esperando = false
-
 	if usar_waypoints:
-		# Avanzar al siguiente waypoint (circular)
-		indice_waypoint = (indice_waypoint + 1) % ruta_waypoints.size()
+		idx_waypoint = (idx_waypoint + 1) % lista_waypoints.size()
 	else:
-		# Invertir dirección lineal
 		direccion *= -1
 
-	_calcular_siguiente_objetivo()
+	_calcular_siguiente()
 
 func _recopilar_waypoints() -> void:
-	ruta_waypoints.clear()
-	for child in get_children():
-		if child is Marker2D or child is Node2D:
-			ruta_waypoints.append(child)
+	lista_waypoints.clear()
+	for c in get_children():
+		if c is Node2D: lista_waypoints.append(c)
 
-	if ruta_waypoints.size() == 0:
-		push_warning("RL_Patrol configurado para Waypoints pero no tiene hijos Node2D/Marker2D.")
-		# Fallback a lineal
-		usar_waypoints = false
+	if lista_waypoints.is_empty():
+		usar_waypoints = false # Fallback
 
-func _calcular_siguiente_objetivo() -> void:
-	if usar_waypoints and ruta_waypoints.size() > 0:
-		objetivo = ruta_waypoints[indice_waypoint].global_position
+func _calcular_siguiente() -> void:
+	if usar_waypoints and not lista_waypoints.is_empty():
+		objetivo_actual = lista_waypoints[idx_waypoint].global_position
 	else:
-		# Modo lineal simple: Izquierda <-> Derecha desde el inicio
 		if direccion == 1:
-			objetivo = punto_inicio + Vector2(distancia_fija, 0)
+			objetivo_actual = punto_inicio + Vector2(distancia_lineal, 0)
 		else:
-			objetivo = punto_inicio - Vector2(distancia_fija, 0)
+			objetivo_actual = punto_inicio - Vector2(distancia_lineal, 0)
 
+# --- DIBUJADO EN EDITOR ---
 func _draw() -> void:
 	if not Engine.is_editor_hint(): return
 	
-	# Visualización en Editor
-	if not usar_waypoints:
-		draw_line(Vector2.ZERO, Vector2(distancia_fija, 0), Color.GREEN, 2.0)
-		draw_line(Vector2.ZERO, Vector2(-distancia_fija, 0), Color.RED, 2.0)
-		draw_circle(Vector2(distancia_fija, 0), 5.0, Color.GREEN)
-		draw_circle(Vector2(-distancia_fija, 0), 5.0, Color.RED)
-	else:
-		# Dibujar líneas conectando hijos
+	if usar_waypoints:
 		var hijos = []
-		for child in get_children():
-			if child is Node2D: hijos.append(child)
+		for c in get_children():
+			if c is Node2D: hijos.append(c)
 
-		for i in range(hijos.size()):
-			var actual = hijos[i].position
-			var siguiente = hijos[(i + 1) % hijos.size()].position
-			draw_line(actual, siguiente, Color.CYAN, 2.0, true)
-			draw_circle(actual, 5.0, Color.CYAN)
+		if hijos.size() > 0:
+			# Dibujar conexión con el padre (punto 0)
+			draw_line(Vector2.ZERO, hijos[0].position, Color.CYAN, 1.0, true)
+
+			for i in range(hijos.size()):
+				var p1 = hijos[i].position
+				var p2 = hijos[(i + 1) % hijos.size()].position
+				draw_line(p1, p2, Color.CYAN, 2.0, true)
+				draw_circle(p1, 8.0, Color.CYAN)
+				# Dibujar número
+				draw_string(ThemeDB.get_fallback_font(), p1 + Vector2(-5, 5), str(i+1), HORIZONTAL_ALIGNMENT_CENTER, -1, 16, Color.BLACK)
+	else:
+		# Lineal: desde 0 a +dist y -dist
+		var p_der = Vector2(distancia_lineal, 0)
+		var p_izq = Vector2(-distancia_lineal, 0)
+
+		draw_line(Vector2.ZERO, p_der, Color.GREEN, 2.0)
+		draw_line(Vector2.ZERO, p_izq, Color.RED, 2.0)
+		draw_circle(p_der, 5.0, Color.GREEN)
+		draw_circle(p_izq, 5.0, Color.RED)
+
+		# Flechas de dirección
+		_dibujar_flecha(Vector2(distancia_lineal/2, 0), Vector2.RIGHT, Color.GREEN)
+		_dibujar_flecha(Vector2(-distancia_lineal/2, 0), Vector2.LEFT, Color.RED)
+
+func _dibujar_flecha(pos: Vector2, dir: Vector2, col: Color) -> void:
+	var tam = 10.0
+	var a = pos + dir * tam
+	var b = pos + dir.rotated(2.5) * tam
+	var c = pos + dir.rotated(-2.5) * tam
+	draw_line(pos - dir * tam, pos + dir * tam, col, 2.0)
+	draw_polygon([a, b, c], [col])
 
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings: PackedStringArray = []
 	if not get_parent() is Node2D:
-		warnings.append("Este componente debe ser hijo de un Node2D (Sprite, CharacterBody2D, etc) para moverlo.")
-
+		warnings.append("El padre debe ser Node2D.")
 	if usar_waypoints:
-		var tiene_markers = false
-		for child in get_children():
-			if child is Marker2D or child is Node2D:
-				tiene_markers = true
-				break
-		if not tiene_markers:
-			warnings.append("Modo Waypoints activo: Añade nodos Marker2D como hijos para definir la ruta.")
-
+		var count = 0
+		for c in get_children():
+			if c is Node2D: count += 1
+		if count == 0:
+			warnings.append("Añade hijos Node2D/Marker2D para los waypoints.")
 	return warnings

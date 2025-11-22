@@ -15,7 +15,7 @@ signal drag_terminado(carta: RL_Card)
 
 # --- CONFIGURACIÓN ---
 @export_group("Datos")
-@export var data_carta: ResourceCardData:
+@export var data_carta: RL_RecursoCarta:
 	set(val):
 		data_carta = val
 		if is_inside_tree(): _actualizar_visual()
@@ -59,7 +59,7 @@ func _ready() -> void:
 	
 	_actualizar_visual()
 
-func configurar(data: ResourceCardData) -> void:
+func configurar(data: RL_RecursoCarta) -> void:
 	data_carta = data
 	_actualizar_visual()
 
@@ -133,5 +133,5 @@ func _gui_input(event: InputEvent) -> void:
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings: PackedStringArray = []
 	if not data_carta:
-		warnings.append("Se recomienda asignar un ResourceCardData.")
+		warnings.append("Se recomienda asignar un RL_RecursoCarta.")
 	return warnings

@@ -1,7 +1,7 @@
 # Archivo: addons/no_code_godot_plugin/Recursos/RecursoEstadisticas.gd
-## Define los valores base de las estadísticas.
+## Valores base para estadísticas de RPG.
 @icon("res://addons/no_code_godot_plugin/deck_icon.png")
-class_name ResourceStats
+class_name RL_RecursoEstadisticas
 extends Resource
 
 @export var salud_maxima: float = 100.0
